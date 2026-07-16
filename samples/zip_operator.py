@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 """
 ZIPファイル操作用のユーティリティ関数
-version: 1.0
+version: 1.1 - 16bit TIFF画像の読み込みに対応
 """
 
 def load_image_from_zip_cv2(zip_path, image_name):
@@ -24,7 +24,7 @@ def load_image_from_zip_cv2(zip_path, image_name):
         nparr = np.frombuffer(img_bytes, np.uint8)
         
         # 画像をデコードする
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)  # 16bit画像を正しく読み込むためにIMREAD_UNCHANGEDを使用
         
     return img
 
