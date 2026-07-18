@@ -32,8 +32,14 @@ OUTPUT_NAME = "output_test_sample1"   # 出力動画のファイル名（拡張�
 OUTPUT_EXT = ".mp4"                   # 出力動画の拡張子
 VIDEO_CODEC = "mp4v"                  # 動画コーデック
 FPS = 60.0                            # 出力動画のフレームレート
+MEAN_STD_OUTPUT_DIR = (
+    r"C:\Users\2025005585\Desktop\python"
+)                                     # 平均と標準偏差の出力画像の保存先フォルダ
+MEAN_IMAGE_NAME = "mean_image"        # 平均値の出力画像のファイル名
+STD_IMAGE_NAME = "std_image"          # 標準偏差の出力画像のファイル名
+IMAGE_EXT = ".png"                    # 平均と標準偏差の出力画像の拡張子
 
-# カラーマップ作成用
+# 関数
 def create_colormap():
     # 256要素を持つLUTを作成(偏差値0~100に対応する色を設定)
     lut = np.zeros((256,1,3),dtype=np.uint8)
@@ -60,6 +66,57 @@ def create_colormap():
     lut[90:95] = [15,15,135]
     lut[95:256] = [0,0,120]
     return lut
+
+def normalize_image(image):
+    """
+    画像を0〜100に正規化する
+    image:
+        meanやstdなどの2次元画像
+    Returns:
+        0〜100のuint8画像
+    """
+
+    img_min = image.min()
+    img_max = image.max()
+
+    # 全画素が同じ値の場合
+    if img_max == img_min:
+        return np.zeros_like(image, dtype=np.uint8)
+
+    normalized = (
+        (image - img_min)
+        /
+        (img_max - img_min)
+        * 100
+    )
+
+    return normalized.astype(np.uint8)
+
+def save_statistics_image(image, filename):
+    """
+    meanやstdを正規化してカラーマップ画像として保存
+    """
+
+    # 0〜100に正規化
+    normalized_image = normalize_image(image)
+
+    # LUT適用のため3チャンネル化
+    three_channel_image = cv2.cvtColor(
+        normalized_image,
+        cv2.COLOR_GRAY2BGR
+    )
+
+    # カラーマップ適用
+    color_mapped_image = cv2.LUT(
+        three_channel_image,
+        create_colormap()
+    )
+
+    # 保存
+    cv2.imwrite(
+        filename,
+        color_mapped_image
+    )
 
 def extract_sun_mini(zip_path:str, h_size:int,w_size:int) -> np.ndarray:
     """フォルダ内の太陽画像から太陽重心を算出し、指定サイズで切りぬいた画像配列を返します。
@@ -166,6 +223,14 @@ if __name__ == "__main__":
         w_size=CROP_W
     )
     mean, std, hensachi = calculate_hensachi(frames)
+
+    #平均値・標準偏差の確認(デバッグ表示)
+    if DEBUG:
+        print("====平均値・標準偏差データ情報====")
+        print("framesサイズ:", frames.shape)
+        print("meanサイズ:", mean.shape)
+        print("stdサイズ:", std.shape)
+        print("================================")
     
     # 1フレームごと、全ピクセルをCSVに保存
     if len(frames) > 0:
@@ -235,7 +300,7 @@ if __name__ == "__main__":
 
     # 入力データの確認(デバッグ表示)
     if DEBUG:
-        print("====入力データ情報====")
+        print("====偏差値入力データ情報====")
         print("データサイズ:",data.shape)
         print("最小値:", data.min())
         print("最大値:", data.max())
@@ -243,7 +308,7 @@ if __name__ == "__main__":
         if USE_CSV:
             print("CSV枚数:", len(csv_files))
             
-        print("=====================")
+        print("==========================")
         
     colormap_lut = create_colormap()    
     
@@ -277,3 +342,18 @@ if __name__ == "__main__":
 
     video_writer.release()
     print("動画の作成が完了しました")
+
+    # 平均と標準偏差の画像作成用
+    # 平均値画像を保存
+    save_statistics_image(
+        mean,
+        MEAN_STD_OUTPUT_DIR + "\\" + MEAN_IMAGE_NAME + IMAGE_EXT ,
+    )
+
+    # 標準偏差画像を保存
+    save_statistics_image(
+        std,
+        MEAN_STD_OUTPUT_DIR + "\\" + STD_IMAGE_NAME + IMAGE_EXT
+    )
+
+    print("平均値画像と標準偏差画像の出力が完了しました")
