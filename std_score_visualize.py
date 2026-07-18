@@ -7,14 +7,6 @@ import glob
 from MIN2ver2 import MIN2_ignore_sunspots
 
 from samples.zip_operator import get_image_names_from_zip, load_image_from_zip_cv2
-zip_path = "samples/2025-07-20-PL1.zip"
-image_names = get_image_names_from_zip(zip_path)
-frames = []
-for name in image_names:
-    img = load_image_from_zip_cv2(zip_path, name)
-    frames.append(img)
-frames = np.array(frames)
-
 
 #パラメータ std score
 INPUT_DIR = "./sun_images"   #処理対象の画像フォルダ
@@ -23,12 +15,12 @@ CROP_W = 800           #　抽出する画像サイズ(横幅)
 OUT_DIR = "./output_pixels"  #  CSV保存先フォルダ
 
 #パラメータ colormap
-USE_CSV = True      # True: CSVを読み込む / False: 偏差値算出チームの変数を使用
+USE_CSV = False      # True: CSVを読み込む / False: 偏差値算出チームの変数を使用
 DEBUG = True         # True: デバッグ情報を表示
 OUTPUT_DIR = (
     r"C:\Users\2025005585\Desktop\python"
 )                                     # 出力動画の保存先フォルダ
-OUTPUT_NAME = "output_test_sample1"   # 出力動画のファイル名（拡張子なし）
+OUTPUT_NAME = "output_test_sample"   # 出力動画のファイル名（拡張子なし）
 OUTPUT_EXT = ".mp4"                   # 出力動画の拡張子
 VIDEO_CODEC = "mp4v"                  # 動画コーデック
 FPS = 60.0                            # 出力動画のフレームレート
@@ -233,34 +225,35 @@ if __name__ == "__main__":
         print("================================")
     
     # 1フレームごと、全ピクセルをCSVに保存
-    if len(frames) > 0:
-        print(f"¥n--- CSV保存処理を開始:{OUT_DIR}---")
-        for i, frame in enumerate(tqdm.tqdm(frames,desc="Saving CSVs")):
-                np.savetxt(f"{OUT_DIR}/frame_{i+1:03d}.csv", frame, delimiter=",", fmt="%d")
+    if USE_CSV:
+        if len(frames) > 0:
+            print(f"¥n--- CSV保存処理を開始:{OUT_DIR}---")
+            for i, frame in enumerate(tqdm.tqdm(frames,desc="Saving CSVs")):
+                    np.savetxt(f"{OUT_DIR}/frame_{i+1:03d}.csv", frame, delimiter=",", fmt="%d")
 
-                # 偏差値画像をCSVとして保存
-        print("\n--- 偏差値CSV保存処理を開始 ---")
+                    # 偏差値画像をCSVとして保存
+            print("\n--- 偏差値CSV保存処理を開始 ---")
 
-        HENSACHI_DIR = "./output_hensachi"
-        os.makedirs(HENSACHI_DIR, exist_ok=True)
+            HENSACHI_DIR = "./output_hensachi"
+            os.makedirs(HENSACHI_DIR, exist_ok=True)
 
-        for i, frame in enumerate(tqdm.tqdm(hensachi, desc="Saving Hensachi CSVs")):
-            np.savetxt(
-                f"{HENSACHI_DIR}/hensachi_{i+1:03d}.csv",
-                frame,
-                delimiter=",",
-                fmt="%.2f"
-            )
+            for i, frame in enumerate(tqdm.tqdm(hensachi, desc="Saving Hensachi CSVs")):
+                np.savetxt(
+                    f"{HENSACHI_DIR}/hensachi_{i+1:03d}.csv",
+                    frame,
+                    delimiter=",",
+                    fmt="%.2f"
+                )
 
-        print("偏差値CSVの保存が完了しました。")
-            
-        # 1ピクセルずつの個別アクセス（例：1枚目の座標x=10, y=20の明るさ）
-        print("\n--- サンプルピクセルの確認 ---")
-        print(f"個別ピクセル明るさ: {frames[0, 20, 10]}")
+            print("偏差値CSVの保存が完了しました。")
+                
+            # 1ピクセルずつの個別アクセス（例：1枚目の座標x=10, y=20の明るさ）
+            print("\n--- サンプルピクセルの確認 ---")
+            print(f"個別ピクセル明るさ: {frames[0, 20, 10]}")
 
-    else:
-        print("有効なフレームが抽出されなかったため、保存処理をスキップしました。")
-            
+        else:
+            print("有効なフレームが抽出されなかったため、保存処理をスキップしました。")
+                
             
             
             
