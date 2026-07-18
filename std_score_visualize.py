@@ -4,8 +4,9 @@ import tqdm
 import sys
 import numpy as np
 import glob
-from MIN2ver2 import MIN2_ignore_sunspots
+import json
 
+from MIN2ver2 import MIN2_ignore_sunspots
 from samples.zip_operator import get_image_names_from_zip, load_image_from_zip_cv2
 
 #パラメータ std score
@@ -30,6 +31,15 @@ MEAN_STD_OUTPUT_DIR = (
 MEAN_IMAGE_NAME = "mean_image"        # 平均値の出力画像のファイル名
 STD_IMAGE_NAME = "std_image"          # 標準偏差の出力画像のファイル名
 IMAGE_EXT = ".png"                    # 平均と標準偏差の出力画像の拡張子
+
+
+if os.environ.get("RUN_BY_SUBPROCESS") == "true":
+    print("このスクリプトは subprocess から実行されています。")
+        # 標準入力から流れてきた文字列を一括で読み込む
+    input_data = sys.stdin.read()
+
+    # JSON文字列をPythonの辞書オブジェクトに復元
+    locals().update(json.loads(input_data))
 
 # 関数
 def create_colormap():
@@ -111,7 +121,7 @@ def save_statistics_image(image, filename):
     )
 
 def extract_sun_mini(zip_path:str, h_size:int,w_size:int) -> np.ndarray:
-    """フォルダ内の太陽画像から太陽重心を算出し、指定サイズで切りぬいた画像配列を返します。
+    """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
     画面端にかかる場合は、足りない部分を黒く塗りつぶします。
 
     Args:
@@ -203,7 +213,7 @@ if __name__ == "__main__":
     else:
         target_zip = "samples/2025-07-20-PL1.zip"
 
-    # 保存先フォルダの作成（タイポ os.makediirs を修正）
+    # 保存先フォルダの作成
     os.makedirs(OUT_DIR, exist_ok=True)
     
     # ZIPを展開せずに一時フォルダを使って安全に読み込む
