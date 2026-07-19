@@ -132,6 +132,29 @@ def extract_sun_mini(zip_path:str, h_size:int,w_size:int) -> np.ndarray:
     Returns:
         np.ndarray:切りぬかれた画像の3次元配列（N,h_size,w_size)
     """
+
+    def crop_and_pad(img:np.ndarray, cx: int, cy: int) -> np.ndarray:
+        #切り抜きたい理想の範囲（画面外にはみ出す可能性あり）
+        h,w = img.shape
+        y1,y2 =  cy - half_h, cy + half_h
+        x1,x2 = cx - half_w,cx + half_w
+
+        #画面外にはみ出している量（余白の計算）
+        top =max(0,-y1)
+        bottom =max(0,y2 - h)
+        left = max(0,-x1)
+        right =max(0,x2 - w)
+
+        #画面内に収まる安全な範囲だけでまずは切りぬく
+        crop_y1,crop_y2 = max(0,y1),min(h,y2)
+        crop_x1,crop_x2 = max(0,x1),min(w,x2)
+        cropped = img[crop_y1:crop_y2,crop_x1:crop_x2]
+
+        #はみ出していた部分を黒色（0）で埋めて、常にsize x size にする 
+        padded = cv2.copyMakeBorder(cropped,top,bottom,left,right,cv2.BORDER_CONSTANT,value = 0)
+
+        return padded
+
     print(f"---画像の読み込みと切り抜き処理を開始:{zip_path}---")
     # 画像ファイルのみ1000枚取得
     image_names = get_image_names_from_zip(zip_path)
@@ -155,25 +178,8 @@ def extract_sun_mini(zip_path:str, h_size:int,w_size:int) -> np.ndarray:
 
         cx = int(cx)
         cy = int(cy)
-        
-        #切り抜きたい理想の範囲（画面外にはみ出す可能性あり）
-        h,w = img.shape
-        y1,y2 =  cy - half_h, cy + half_h
-        x1,x2 = cx - half_w,cx + half_w
 
-        #画面外にはみ出している量（余白の計算）
-        top =max(0,-y1)
-        bottom =max(0,y2 - h)
-        left = max(0,-x1)
-        right =max(0,x2 - w)
-
-        #画面内に収まる安全な範囲だけでまずは切りぬく
-        crop_y1,crop_y2 = max(0,y1),min(h,y2)
-        crop_x1,crop_x2 = max(0,x1),min(w,x2)
-        cropped = img[crop_y1:crop_y2,crop_x1:crop_x2]
-
-        #はみ出していた部分を黒色（0）で埋めて、常にsize x size にする 
-        padded = cv2.copyMakeBorder(cropped,top,bottom,left,right,cv2.BORDER_CONSTANT,value = 0)
+        padded = crop_and_pad(img, cx, cy)
 
         frames.append(padded)
         
