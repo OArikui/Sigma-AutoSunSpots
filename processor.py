@@ -125,9 +125,22 @@ for i, base_path in enumerate(input_dirs):
             proc.stdin.write(json_payload)
             proc.stdin.close()
             
-            # 子プロセスの出力を1行ずつ読み込んで親プロセスの stdout (DualLogger) に流す
+            # 子プロセスの出力を1行ずつ読み込んで処理
             for line in proc.stdout:
-                sys.stdout.write(line)
+                clean_line = line.strip()
+                
+                # tqdmの進捗行かどうかを判定
+                if "%|" in line or "it/s" in line:
+                    if "100%" in line:
+                        # 終わったタイミング（100%）だけ、ログファイルと画面の両方に出力
+                        sys.stdout.write(clean_line + "\n")
+                    else:
+                        # 途中経過は、画面（コンソール）の同じ行に上書き表示
+                        sys.stdout.terminal.write(f"\r{clean_line}")
+                        sys.stdout.terminal.flush()
+                else:
+                    # tqdm以外の通常のprint文などは普通に出力
+                    sys.stdout.write(line)
             
             proc.wait()
             if proc.returncode != 0:
