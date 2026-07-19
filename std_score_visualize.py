@@ -120,24 +120,11 @@ def save_statistics_image(image, filename):
         color_mapped_image
     )
 
-def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> np.ndarray:
-    """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
-    画面端にかかる場合は、足りない部分を黒く塗りつぶします。
-
-    Args:
-        folder(str):対象の画像が保存されているフォルダのパス
-        h_size(int):切りぬく長方形の縦幅
-        w_size(int):切りぬく長方形の横幅
-
-    Returns:
-        np.ndarray:切りぬかれた画像の3次元配列（N,h_size,w_size)
-    """
-
-    def crop_and_pad(img:np.ndarray, cx: int, cy: int) -> np.ndarray:
+def crop_and_pad(img:np.ndarray, cx: int, cy: int,crop_h:int,crop_w:int) -> np.ndarray:
         #切り抜きたい理想の範囲（画面外にはみ出す可能性あり）
         h,w = img.shape
-        y1,y2 =  cy - half_h, cy + half_h
-        x1,x2 = cx - half_w,cx + half_w
+        y1,y2 =  cy - crop_h, cy + crop_h
+        x1,x2 = cx - crop_w,cx + crop_w
 
         #画面外にはみ出している量（余白の計算）
         top =max(0,-y1)
@@ -154,6 +141,21 @@ def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> np.ndarray:
         padded = cv2.copyMakeBorder(cropped,top,bottom,left,right,cv2.BORDER_CONSTANT,value = 0)
 
         return padded
+    
+def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> tuple[np.ndarray, np.ndarray]:
+    """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
+    画面端にかかる場合は、足りない部分を黒く塗りつぶします。
+
+    Args:
+        folder(str):対象の画像が保存されているフォルダのパス
+        h_size(int):切りぬく長方形の縦幅
+        w_size(int):切りぬく長方形の横幅
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]:
+            - 切りぬかれた画像の3次元配列（N,h_size,w_size)
+            - 各画像の中心座標配列（N,2）
+    """
 
     print(f"---画像の読み込みと切り抜き処理を開始:{dir_path}---")
     # 画像ファイルのみ1000枚取得
@@ -180,7 +182,7 @@ def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> np.ndarray:
         cx = int(cx)
         cy = int(cy)
 
-        padded = crop_and_pad(img, cx, cy)
+        padded = crop_and_pad(img, cx, cy,half_h,half_w)
 
         frames.append(padded)
         
