@@ -58,7 +58,7 @@ input_dirs = [
 ]
 
 params = {
-    "OUTPUT_MODE":"WITH",
+    "OUTPUT_MODE":"VIDEO",
     # パラメータ std score
     "INPUT_DIR": "./sun_images",  # 処理対象の画像フォルダ
     "CROP_H": 800,  # 抽出する画像サイズ(縦幅)
