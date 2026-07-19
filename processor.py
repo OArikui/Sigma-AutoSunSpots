@@ -58,13 +58,13 @@ input_dirs = [
 ]
 
 params = {
+    "OUTPUT_MODE":"WITH",
     # パラメータ std score
     "INPUT_DIR": "./sun_images",  # 処理対象の画像フォルダ
     "CROP_H": 800,  # 抽出する画像サイズ(縦幅)
     "CROP_W": 800,  # 抽出する画像サイズ(横幅)
-    "OUT_DIR": "./output_pixels",  # CSV保存先フォルダ
+    "OUT_DIR_CSV": "./output_pixels",  # CSV保存先フォルダ
     # パラメータ colormap
-    "USE_CSV": False,  # True: CSVを読み込む / False: 偏差値算出チームの変数を使用
     "DEBUG": True,  # True: デバッグ情報を表示
     "OUTPUT_DIR": r"",  # 出力動画の保存先フォルダ
     "OUTPUT_NAME": "output_test_sample",  # 出力動画のファイル名（拡張子なし）
@@ -102,7 +102,8 @@ for i, base_path in enumerate(input_dirs):
         dir_params["STD_IMAGE_NAME"] = dirname + "_STD"
 
         OUTPUT_DIRS = os.path.join(PARENT_OUTDIR,"output", basename)
-        dir_params["OUTPUT_DIR"] = OUTPUT_DIRS
+        dir_params["OUTPUT_DIR"] = OUTPUT_DIRS+"_video"
+        dir_params["OUT_DIR"] = OUTPUT_DIRS+"_csv"
         dir_params["MEAN_STD_OUTPUT_DIR"] = OUTPUT_DIRS
         Path(OUTPUT_DIRS).mkdir(parents=True, exist_ok=True)
 
