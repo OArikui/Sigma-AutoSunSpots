@@ -116,6 +116,8 @@ def crop_and_pad(
 ) -> np.ndarray:
     # 切り抜きたい理想の範囲（画面外にはみ出す可能性あり）
     h, w = img.shape
+    crop_h=int(crop_h/2)
+    crop_w=int(crop_w/2)
     y1, y2 = cy - crop_h, cy + crop_h
     x1, x2 = cx - crop_w, cx + crop_w
 
@@ -160,8 +162,6 @@ def extract_sun_mini(
     image_names = get_image_names_from_dir(dir_path)
     frames = []
     min2_centers = []
-    half_h = h_size // 2
-    half_w = w_size // 2
     # tqdmによる進捗表示
     for name in tqdm.tqdm(image_names, desc="Processing images"):
         # 16bit(下位12bit)画像を輝度値(1ch)のまま正しく読み込む
@@ -176,7 +176,7 @@ def extract_sun_mini(
         cx = int(cx)
         cy = int(cy)
 
-        padded = crop_and_pad(img, cx, cy, half_h, half_w)
+        padded = crop_and_pad(img, cx, cy, h_size, w_size)
 
         frames.append(padded)
         min2_centers.append([cx,cy])
