@@ -136,6 +136,7 @@ def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> np.ndarray:
     # 画像ファイルのみ1000枚取得
     image_names = get_image_names_from_dir(dir_path)
     frames = []
+    min2_centers = []
     half_h = h_size//2
     half_w = w_size//2
     #tqdmによる進捗表示
@@ -156,6 +157,7 @@ def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> np.ndarray:
         cx = int(cx)
         cy = int(cy)
         
+        min2_centers.append([cx,cy])#すでに小数点以下が丸められていることに注意
         #切り抜きたい理想の範囲（画面外にはみ出す可能性あり）
         h,w = img.shape
         y1,y2 =  cy - half_h, cy + half_h
@@ -177,7 +179,7 @@ def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> np.ndarray:
 
         frames.append(padded)
         
-    return np.array(frames)
+    return np.array(frames),np.array(min2_centers)
 
 def calculate_hensachi(frames: np.ndarray):
     """平均画像・標準偏差画像・偏差値画像を計算する。"""
@@ -211,7 +213,7 @@ if __name__ == "__main__":
 
     print(f"\n--- 画像ファイルの読み込み開始: {INPUT_DIR} ---")
 
-    frames = extract_sun_mini(
+    frames,centers = extract_sun_mini(
         INPUT_DIR,
         h_size=CROP_H,
         w_size=CROP_W
