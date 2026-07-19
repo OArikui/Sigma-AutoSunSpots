@@ -1,5 +1,6 @@
 import zipfile
 import cv2
+import os
 import numpy as np
 from path import Path
 """
@@ -7,7 +8,7 @@ ZIPファイル操作用のユーティリティ関数
 """
 version= 2.0 # 非zip用完全置換関数の作製
 
-def load_image_from_path_cv2(image_path):
+def load_image_from_path_cv2(dirpath,image_name):
     """ファイルシステムから直接画像を読み込んでOpenCV（NumPy配列）形式で返す。
 
     Args:
@@ -16,6 +17,7 @@ def load_image_from_path_cv2(image_path):
     Returns:
         np.ndarray: デコードされた画像データ（BGR形式のNumPy配列）。
     """
+    image_path=os.path.join(dirpath,image_name)
     # 16bit画像を正しく読み込むためにIMREAD_UNCHANGEDを使用
     return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
 

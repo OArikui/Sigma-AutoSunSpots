@@ -7,7 +7,7 @@ import glob
 import json
 
 from MIN2ver2 import MIN2_ignore_sunspots
-from samples.zip_operator import get_image_names_from_zip, load_image_from_zip_cv2
+from samples.zip_operator import get_image_names_from_dir, load_image_from_path_cv2
 
 #パラメータ std score
 INPUT_DIR = "./sun_images"   #処理対象の画像フォルダ
@@ -120,7 +120,7 @@ def save_statistics_image(image, filename):
         color_mapped_image
     )
 
-def extract_sun_mini(zip_path:str, h_size:int,w_size:int) -> np.ndarray:
+def extract_sun_mini(dir_path:str, h_size:int,w_size:int) -> np.ndarray:
     """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
     画面端にかかる場合は、足りない部分を黒く塗りつぶします。
 
@@ -132,16 +132,16 @@ def extract_sun_mini(zip_path:str, h_size:int,w_size:int) -> np.ndarray:
     Returns:
         np.ndarray:切りぬかれた画像の3次元配列（N,h_size,w_size)
     """
-    print(f"---画像の読み込みと切り抜き処理を開始:{zip_path}---")
+    print(f"---画像の読み込みと切り抜き処理を開始:{dir_path}---")
     # 画像ファイルのみ1000枚取得
-    image_names = get_image_names_from_zip(zip_path)
+    image_names = get_image_names_from_dir(dir_path)
     frames = []
     half_h = h_size//2
     half_w = w_size//2
     #tqdmによる進捗表示
     for name in tqdm.tqdm(image_names, desc="Processing images"):
         #16bit(下位12bit)画像を輝度値(1ch)のまま正しく読み込む
-        img = load_image_from_zip_cv2(zip_path, name)
+        img = load_image_from_path_cv2(dir_path, name)
         if img is None: 
             continue
         try:
@@ -206,21 +206,13 @@ for i in range(len(hensachi)):
 
 # --- 実行とCSV保存（1フレームずつピクセル保存） ---
 if __name__ == "__main__":
-
-    # コマンドライン引数からZIPのパスを取得（未指定ならデフォルト）
-    if len(sys.argv) > 1:
-        target_zip = sys.argv[1]
-    else:
-        target_zip = "samples/2025-07-20-PL1.zip"
-
     # 保存先フォルダの作成
     os.makedirs(OUT_DIR, exist_ok=True)
-    
-    # ZIPを展開せずに一時フォルダを使って安全に読み込む
-    print(f"\n--- ZIPファイルの読み込み開始: {target_zip} ---")
+
+    print(f"\n--- 画像ファイルの読み込み開始: {INPUT_DIR} ---")
 
     frames = extract_sun_mini(
-        target_zip,
+        INPUT_DIR,
         h_size=CROP_H,
         w_size=CROP_W
     )
