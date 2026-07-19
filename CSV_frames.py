@@ -1,9 +1,9 @@
 import numpy as np
 import os
 
-version =1.0
+version =1.1 #saveにdelimiterとfmtを追加
 
-def save_images_to_csv(file_path: str, images_3d: np.ndarray) -> None:
+def save_images_to_csv(file_path: str, images_3d: np.ndarray,delimiter:str=",",fmt:str="%d") -> None:
     """
     3次元の画像配列（枚数, 縦, 横）を、形状情報をヘッダーに含めてCSVに保存する。
 
@@ -30,8 +30,8 @@ def save_images_to_csv(file_path: str, images_3d: np.ndarray) -> None:
     np.savetxt(
         file_path,
         images_2d,
-        delimiter=",",
-        fmt="%d",
+        delimiter=delimiter,
+        fmt=fmt,
         header=shape_header,
         comments="# ",
     )
