@@ -6,6 +6,42 @@ from path import Path
 ZIPファイル操作用のユーティリティ関数
 """
 version= 2.0 # 非zip用完全置換関数の作製
+
+def load_image_from_path_cv2(image_path):
+    """ファイルシステムから直接画像を読み込んでOpenCV（NumPy配列）形式で返す。
+
+    Args:
+        image_path (str): 対象とする画像ファイルのパス。
+
+    Returns:
+        np.ndarray: デコードされた画像データ（BGR形式のNumPy配列）。
+    """
+    # 16bit画像を正しく読み込むためにIMREAD_UNCHANGEDを使用
+    return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+def get_image_names_from_dir(directory_path, extensions:list=['.tiff']):
+    """指定したディレクトリ（およびサブディレクトリ）から指定された拡張子に一致する画像ファイル名の一覧を取得する。
+
+    Args:
+        directory_path (str): 検索対象とするディレクトリのパス。
+        extensions (list, optional): 抽出対象とする画像拡張子のリスト。デフォルトは ['.tiff']。
+
+    Returns:
+        list[str]: 条件に一致した画像ファイルのフルパスリスト。
+    """
+    # 検索対象の拡張子を小文字のタプルに変換
+    image_extensions = tuple(ext.lower() for ext in extensions)
+    
+    image_paths = []
+    
+    # pathlibを使用してディレクトリ内を再帰的に検索[cite: 1]
+    for path in Path(directory_path).rglob('*'):
+        # ファイルかつ拡張子が一致するもののみを抽出
+        if path.is_file() and path.suffix.lower() in image_extensions:
+            image_paths.append(str(path))
+            
+    return image_paths
+
 def load_image_from_zip_cv2(zip_path, image_name):
     """ZIPファイルから直接画像を読み込んでOpenCV（NumPy配列）形式で返す。
 
@@ -55,38 +91,3 @@ def get_image_names_from_zip(zip_path, extensions:list=['.tiff']):
                 image_names.append(file_name)
                 
     return image_names
-
-def load_image_from_path(image_path):
-    """ファイルシステムから直接画像を読み込んでOpenCV（NumPy配列）形式で返す。
-
-    Args:
-        image_path (str): 対象とする画像ファイルのパス。
-
-    Returns:
-        np.ndarray: デコードされた画像データ（BGR形式のNumPy配列）。
-    """
-    # 16bit画像を正しく読み込むためにIMREAD_UNCHANGEDを使用
-    return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
-
-def get_image_names_from_dir(directory_path, extensions:list=['.tiff']):
-    """指定したディレクトリ（およびサブディレクトリ）から指定された拡張子に一致する画像ファイル名の一覧を取得する。
-
-    Args:
-        directory_path (str): 検索対象とするディレクトリのパス。
-        extensions (list, optional): 抽出対象とする画像拡張子のリスト。デフォルトは ['.tiff']。
-
-    Returns:
-        list[str]: 条件に一致した画像ファイルのフルパスリスト。
-    """
-    # 検索対象の拡張子を小文字のタプルに変換
-    image_extensions = tuple(ext.lower() for ext in extensions)
-    
-    image_paths = []
-    
-    # pathlibを使用してディレクトリ内を再帰的に検索[cite: 1]
-    for path in Path(directory_path).rglob('*'):
-        # ファイルかつ拡張子が一致するもののみを抽出
-        if path.is_file() and path.suffix.lower() in image_extensions:
-            image_paths.append(str(path))
-            
-    return image_paths
