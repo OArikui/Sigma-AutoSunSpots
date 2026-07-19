@@ -81,7 +81,7 @@ EroNum = 0
 SuccessNum = 0
 print("[INFO] from processor:start processing")
 
-for i, base_path in enumerate(input_dirs[2:]):
+for i, base_path in enumerate(input_dirs):
     print(f"[INFO] from processor: start parent dir ({i + 1}/{len(input_dirs[2:])})'{base_path}'")
     basename = Path(base_path).name.replace("pic", "")
     
