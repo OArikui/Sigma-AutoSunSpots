@@ -109,7 +109,7 @@ for i, base_path in enumerate(input_dirs):
         json_payload = json.dumps(dir_params)
         try:
             subprocess.run(
-                ["python", "child.py"], input=json_payload, text=True, env=my_env,check=True
+                ["python", "std_score_visualize.py"], input=json_payload, text=True, env=my_env,check=True
             )
             SuccessNum+=1
         except Exception as e:
