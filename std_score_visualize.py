@@ -10,7 +10,7 @@ from MIN2ver2 import MIN2_ignore_sunspots
 from samples.zip_operator import get_image_names_from_dir, load_image_from_path_cv2
 
 #パラメータ std score
-INPUT_DIR = "./sun_images"   #処理対象の画像フォルダ
+INPUT_DIR = "./sun_images"   #　処理対象の画像フォルダ
 CROP_H = 800           #　抽出する画像サイズ(縦幅)
 CROP_W = 800           #　抽出する画像サイズ(横幅)
 OUT_DIR = "./output_pixels"  #  CSV保存先フォルダ
@@ -21,13 +21,13 @@ DEBUG = True         # True: デバッグ情報を表示
 OUTPUT_DIR = (
     r"C:\Users\2025005585\Desktop\python"
 )                                     # 出力動画の保存先フォルダ
-OUTPUT_NAME = "output_test_sample"   # 出力動画のファイル名（拡張子なし）
+OUTPUT_NAME = "output_test_sample"    # 出力動画のファイル名（拡張子なし）
 OUTPUT_EXT = ".mp4"                   # 出力動画の拡張子
-VIDEO_CODEC = "mp4v"                  # 動画コーデック
+VIDEO_CODEC = "mp4v"                  # 出力動画コーデック
 FPS = 60.0                            # 出力動画のフレームレート
 MEAN_STD_OUTPUT_DIR = (
     r"C:\Users\2025005585\Desktop\python"
-)                                     # 平均と標準偏差の出力画像の保存先フォルダ
+)                                     # 平均値と標準偏差の出力画像の保存先フォルダ
 MEAN_IMAGE_NAME = "mean_image"        # 平均値の出力画像のファイル名
 STD_IMAGE_NAME = "std_image"          # 標準偏差の出力画像のファイル名
 IMAGE_EXT = ".png"                    # 平均と標準偏差の出力画像の拡張子
@@ -71,11 +71,11 @@ def create_colormap():
 
 def normalize_image(image):
     """
-    画像を0〜100に正規化する
+    画像を50〜100に正規化する
     image:
         meanやstdなどの2次元画像
     Returns:
-        0〜100のuint8画像
+        50〜100のuint8画像
     """
 
     img_min = image.min()
@@ -89,7 +89,7 @@ def normalize_image(image):
         (image - img_min)
         /
         (img_max - img_min)
-        * 100
+        * 50 + 50
     )
 
     return normalized.astype(np.uint8)
@@ -197,12 +197,12 @@ def calculate_hensachi(frames: np.ndarray):
 
     return mean, std, hensachi
 
-"""
-#偏差値画像を1枚ずつ表示する。
-for i in range(len(hensachi)):
-    print(f"{i+1}枚目の偏差値画像")
-    print(hensachi[i])
-"""
+    """
+    #偏差値画像を1枚ずつ表示する。
+    for i in range(len(hensachi)):
+        print(f"{i+1}枚目の偏差値画像")
+        print(hensachi[i])
+    """
 
 # --- 実行とCSV保存（1フレームずつピクセル保存） ---
 if __name__ == "__main__":
@@ -302,13 +302,14 @@ if __name__ == "__main__":
 
         if USE_CSV:
             print("CSV枚数:", len(csv_files))
-            
+
         print("==========================")
         
+    #カラーマップ作成
     colormap_lut = create_colormap()    
     
 
-    # 動画作成用
+    # ===================動画作成用===================
     # 出力動画の設定
     video_writer = cv2.VideoWriter(
         OUTPUT_DIR + "\\" + OUTPUT_NAME + OUTPUT_EXT,
@@ -338,7 +339,7 @@ if __name__ == "__main__":
     video_writer.release()
     print("動画の作成が完了しました")
 
-    # 平均と標準偏差の画像作成用
+    # =============平均と標準偏差の画像作成用=============
     # 平均値画像を保存
     save_statistics_image(
         mean,
