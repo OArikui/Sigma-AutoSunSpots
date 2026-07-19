@@ -7,17 +7,36 @@ from pathlib import Path
 
 version=1.0
 
-PARENT_OUTDIR=r"O:\std_score_visualize"
-Path(PARENT_OUTDIR).mkdir(parents=True, exist_ok=True)
+PARENT_OUTDIR = r"O:\std_score_visualize"
 
-# 日時 YYYY-MM-DD_hh-mm-ss
-now_str = datetime.datetime.now().strftime('%Y-%m-%d_%H-%m-%S')
+# 1. ログ保存先のディレクトリパス（processing_log）を定義
+log_dir = os.path.join(PARENT_OUTDIR, "processing_log")
 
+# 2. processing_log フォルダを作成
+Path(log_dir).mkdir(parents=True, exist_ok=True)
+
+# 3. 日時 YYYY-MM-DD_hh-mm-ss
+now_str = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 log_name = f"console_log_{now_str}.txt"
 
-original_stdout = sys.stdout
-sys.stdout = open(os.path.join(PARENT_OUTDIR,"processing_log",log_name), 'w', encoding='utf-8')
+# 4. 画面とファイルの両方に出力するためのクラスを定義
+class DualLogger:
+    def __init__(self, filepath):
+        self.terminal = sys.stdout  # 元のコンソール出力を保持
+        self.log = open(filepath, 'w', encoding='utf-8')
 
+    def write(self, message):
+        self.terminal.write(message)  # 画面に出力
+        self.log.write(message)       # ファイルに出力
+        self.log.flush()              # リアルタイムでファイルに書き込み反映させる
+
+    def flush(self):
+        self.terminal.flush()
+        self.log.flush()
+
+# sys.stdout を DualLogger に置き換える
+log_path = os.path.join(log_dir, log_name)
+sys.stdout = DualLogger(log_path)
 # 現在の環境変数をコピーし、subprocess用の目印を追加
 my_env = os.environ.copy()
 my_env["RUN_BY_SUBPROCESS"] = "true"
@@ -66,13 +85,18 @@ for i, base_path in enumerate(input_dirs):
         f"[INFO] from processor: start parent dir ({i + 1}/{len(input_dirs)})'{base_path}'"
     )
     basename = Path(base_path).name.replace("pic", "")
-    sub_folders = [p for p in base_path.iterdir() if p.is_dir()]
-    for ii, dirpath in sub_folders:
-        print(f"[INFO] from processor:({i + 1}/{len(sub_folders)})'{dirpath}'")
-        dirname = Path(dirpath).name
+    
+    # 修正1: Path() で囲んでから iterdir() を呼ぶ
+    sub_folders = [p for p in Path(base_path).iterdir() if p.is_dir()]
+    
+    # 修正2: enumerate を使ってインデックスを取得する
+    for ii, dirpath in enumerate(sub_folders):
+        print(f"[INFO] from processor:({ii + 1}/{len(sub_folders)})'{dirpath}'")
+        dirname = dirpath.name # Pathオブジェクトなので .name が使える
 
         dir_params = params.copy()
-        dir_params["INPUT_DIR"] = dirpath
+        # 修正3: Pathオブジェクトを文字列にキャストしてからJSONの辞書に格納
+        dir_params["INPUT_DIR"] = str(dirpath)
         dir_params["OUTPUT_NAME"] = dirname
         dir_params["MEAN_IMAGE_NAME"] = dirname + "_MEAN"
         dir_params["STD_IMAGE_NAME"] = dirname + "_STD"
@@ -85,11 +109,12 @@ for i, base_path in enumerate(input_dirs):
         json_payload = json.dumps(dir_params)
         try:
             subprocess.run(
-                ["python", "child.py"], input=json_payload, text=True, env=my_env
+                ["python", "child.py"], input=json_payload, text=True, env=my_env,check=True
             )
+            SuccessNum+=1
         except Exception as e:
             print(f"[ERROR] from processor:{e}")
             EroNum += 1
 print(
-    f"[INFO] from processor: finish all processing (successful={len(input_dirs) - EroNum}/{len(input_dirs)})"
+    f"[INFO] from processor: finish all processing (successful={SuccessNum}/{EroNum+SuccessNum})"
 )
