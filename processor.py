@@ -102,10 +102,14 @@ for i, base_path in enumerate(input_dirs):
         dir_params["STD_IMAGE_NAME"] = dirname + "_STD"
 
         OUTPUT_DIRS = os.path.join(PARENT_OUTDIR,"output", basename)
-        dir_params["OUTPUT_DIR"] = OUTPUT_DIRS+"_video"
-        dir_params["OUT_DIR"] = OUTPUT_DIRS+"_csv"
-        dir_params["MEAN_STD_OUTPUT_DIR"] = OUTPUT_DIRS
+        dir_params["OUTPUT_DIR"] = os.path.join(OUTPUT_DIRS,"video")
+        dir_params["OUT_DIR"] = os.path.join(OUTPUT_DIRS,"csv")
+        dir_params["MEAN_STD_OUTPUT_DIR"] = os.path.join(OUTPUT_DIRS,"mean_std")
         Path(OUTPUT_DIRS).mkdir(parents=True, exist_ok=True)
+        Path(dir_params["OUTPUT_DIR"]).mkdir(parents=True, exist_ok=True)
+        Path(dir_params["OUT_DIR"]).mkdir(parents=True, exist_ok=True)
+        Path(dir_params["MEAN_STD_OUTPUT_DIR"]).mkdir(parents=True, exist_ok=True)
+        
 
         json_payload = json.dumps(dir_params)
         try:
