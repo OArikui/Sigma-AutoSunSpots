@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import glob
 import json
-from path import Path
+from pathlib import Path
 
 from CSV_frames import save_images_to_csv
 from MIN2ver2 import MIN2_ignore_sunspots
@@ -236,7 +236,7 @@ if __name__ == "__main__":
             cropped_hensachi = []
             for i, frame in enumerate(tqdm.tqdm(hensachi, desc="Saving Hensachi CSVs")):
                 cropped_hensachi.append(
-                    crop_and_pad(hensachi, centers[i][0], centers[i][1], CROP_H, CROP_W)
+                    crop_and_pad(frame, centers[i][0], centers[i][1], CROP_H, CROP_W)
                 )
             cropped_hensachi = np.array(cropped_hensachi)
 

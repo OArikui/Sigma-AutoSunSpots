@@ -2,7 +2,7 @@ import zipfile
 import cv2
 import os
 import numpy as np
-from path import Path
+from pathlib import Path
 """
 ZIPファイル操作用のユーティリティ関数
 """
