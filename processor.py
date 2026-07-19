@@ -80,31 +80,28 @@ params = {
 EroNum = 0
 SuccessNum = 0
 print("[INFO] from processor:start processing")
-for i, base_path in enumerate(input_dirs):
-    print(
-        f"[INFO] from processor: start parent dir ({i + 1}/{len(input_dirs)})'{base_path}'"
-    )
+
+for i, base_path in enumerate(input_dirs[2:]):
+    print(f"[INFO] from processor: start parent dir ({i + 1}/{len(input_dirs[2:])})'{base_path}'")
     basename = Path(base_path).name.replace("pic", "")
     
-    # 修正1: Path() で囲んでから iterdir() を呼ぶ
     sub_folders = [p for p in Path(base_path).iterdir() if p.is_dir()]
     
-    # 修正2: enumerate を使ってインデックスを取得する
     for ii, dirpath in enumerate(sub_folders):
         print(f"[INFO] from processor:({ii + 1}/{len(sub_folders)})'{dirpath}'")
-        dirname = dirpath.name # Pathオブジェクトなので .name が使える
+        dirname = dirpath.name
 
         dir_params = params.copy()
-        # 修正3: Pathオブジェクトを文字列にキャストしてからJSONの辞書に格納
         dir_params["INPUT_DIR"] = str(dirpath)
         dir_params["OUTPUT_NAME"] = dirname
         dir_params["MEAN_IMAGE_NAME"] = dirname + "_MEAN"
         dir_params["STD_IMAGE_NAME"] = dirname + "_STD"
 
-        OUTPUT_DIRS = os.path.join(PARENT_OUTDIR,"output", basename)
-        dir_params["OUTPUT_DIR"] = os.path.join(OUTPUT_DIRS,"video")
-        dir_params["OUT_DIR"] = os.path.join(OUTPUT_DIRS,"csv")
-        dir_params["MEAN_STD_OUTPUT_DIR"] = os.path.join(OUTPUT_DIRS,"mean_std")
+        OUTPUT_DIRS = os.path.join(PARENT_OUTDIR, "output", basename)
+        dir_params["OUTPUT_DIR"] = os.path.join(OUTPUT_DIRS, "video")
+        dir_params["OUT_DIR"] = os.path.join(OUTPUT_DIRS, "csv")
+        dir_params["MEAN_STD_OUTPUT_DIR"] = os.path.join(OUTPUT_DIRS, "mean_std")
+        
         Path(OUTPUT_DIRS).mkdir(parents=True, exist_ok=True)
         Path(dir_params["OUTPUT_DIR"]).mkdir(parents=True, exist_ok=True)
         Path(dir_params["OUT_DIR"]).mkdir(parents=True, exist_ok=True)
@@ -112,14 +109,33 @@ for i, base_path in enumerate(input_dirs):
         
 
         json_payload = json.dumps(dir_params)
+        
         try:
-            subprocess.run(
-                ["python", "std_score_visualize.py"], input=json_payload, text=True, env=my_env,check=True
+            # リアルタイムにログをキャプチャするために Popen を使用
+            proc = subprocess.Popen(
+                ["python", "std_score_visualize.py"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # 標準エラーも標準出力に統合してキャプチャ
+                text=True,
+                env=my_env
             )
-            SuccessNum+=1
+            
+            # 子プロセスにJSONデータを流し込んで標準入力を閉じる
+            proc.stdin.write(json_payload)
+            proc.stdin.close()
+            
+            # 子プロセスの出力を1行ずつ読み込んで親プロセスの stdout (DualLogger) に流す
+            for line in proc.stdout:
+                sys.stdout.write(line)
+            
+            proc.wait()
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(proc.returncode, proc.args)
+                
+            SuccessNum += 1
         except Exception as e:
             print(f"[ERROR] from processor:{e}")
             EroNum += 1
-print(
-    f"[INFO] from processor: finish all processing (successful={SuccessNum}/{EroNum+SuccessNum})"
-)
+
+print(f"[INFO] from processor: finish all processing (successful={SuccessNum}/{EroNum+SuccessNum})")
