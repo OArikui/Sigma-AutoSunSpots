@@ -14,24 +14,21 @@ from samples.zip_operator import get_image_names_from_dir, load_image_from_path_
 # 全体
 OUTPUT_MODE = "VIDEO"  # CSV(0),VIDEO(2),WITH(1)
 # パラメータ std score
-INPUT_DIR = "./sun_images"  # 　処理対象の画像フォルダ
-CROP_H = 800  # 　抽出する画像サイズ(縦幅)
-CROP_W = 800  # 　抽出する画像サイズ(横幅)
-OUT_DIR_CSV = "./output_pixels"  #  CSV保存先フォルダ
+INPUT_DIR = "./sun_images"  # 処理対象の画像フォルダ
+CROP_H = 800  # 抽出する画像サイズ(縦幅)
+CROP_W = 800  # 抽出する画像サイズ(横幅)
+OUT_DIR_CSV = "./output_pixels"  # CSV保存先フォルダ
 
 # パラメータ colormap
 DEBUG = True  # True: デバッグ情報を表示
-OUTPUT_DIR = r"C:\Users\2025005585\Desktop\python"  # 出力動画の保存先フォルダ
-OUTPUT_NAME = "output_test_sample"  # 出力動画のファイル名（拡張子なし）
-OUTPUT_EXT = ".mp4"  # 出力動画の拡張子
-VIDEO_CODEC = "mp4v"  # 出力動画コーデック
-FPS = 60.0  # 出力動画のフレームレート
+OUTPUT_DIR = r"C:\Users\2025005585\Desktop\python"  # 出力画像の保存先ルートフォルダ
+OUTPUT_NAME = "output_test_sample"  # 保存用フォルダ名（旧：動画ファイル名）
 MEAN_STD_OUTPUT_DIR = (
     r"C:\Users\2025005585\Desktop\python"  # 平均値と標準偏差の出力画像の保存先フォルダ
 )
 MEAN_IMAGE_NAME = "mean_image"  # 平均値の出力画像のファイル名
 STD_IMAGE_NAME = "std_image"  # 標準偏差の出力画像のファイル名
-IMAGE_EXT = ".png"  # 平均と標準偏差の出力画像の拡張子
+IMAGE_EXT = ".png"  # 画像の拡張子
 
 
 if os.environ.get("RUN_BY_SUBPROCESS") == "true":
@@ -116,8 +113,8 @@ def crop_and_pad(
 ) -> np.ndarray:
     # 切り抜きたい理想の範囲（画面外にはみ出す可能性あり）
     h, w = img.shape
-    crop_h=int(crop_h/2)
-    crop_w=int(crop_w/2)
+    crop_h = int(crop_h / 2)
+    crop_w = int(crop_w / 2)
     y1, y2 = cy - crop_h, cy + crop_h
     x1, x2 = cx - crop_w, cx + crop_w
 
@@ -179,7 +176,7 @@ def extract_sun_mini(
         padded = crop_and_pad(img, cx, cy, h_size, w_size)
 
         frames.append(padded)
-        min2_centers.append([cx,cy])
+        min2_centers.append([cx, cy])
 
     return np.array(frames), np.array(min2_centers)
 
@@ -197,13 +194,6 @@ def calculate_hensachi(frames: np.ndarray):
     hensachi = np.where(std == 0, 50, 50 + 10 * (frames - mean) / std)
 
     return mean, std, hensachi
-
-    """
-    #偏差値画像を1枚ずつ表示する。
-    for i in range(len(hensachi)):
-        print(f"{i+1}枚目の偏差値画像")
-        print(hensachi[i])
-    """
 
 
 # --- 実行とCSV保存（1フレームずつピクセル保存） ---
@@ -268,7 +258,7 @@ if __name__ == "__main__":
         data = hensachi
 
         # データ形状からフレーム数・画像サイズの取得
-        n_frames, height, width = data.shape
+        n_frames, height, width,_ = data.shape
 
         # 入力データの確認(デバッグ表示)
         if DEBUG:
@@ -282,40 +272,46 @@ if __name__ == "__main__":
         # カラーマップ作成
         colormap_lut = create_colormap()
 
-        # ===================動画作成用===================
-        # 出力動画の設定
-        video_writer = cv2.VideoWriter(
-            OUTPUT_DIR + "\\" + OUTPUT_NAME + OUTPUT_EXT,
-            cv2.VideoWriter_fourcc(*VIDEO_CODEC),
-            FPS,
-            (width, height),
-        )
+        # =================== フォルダ作成と画像保存 ===================
+        # 動画名(OUTPUT_NAME)と同じ名前のフォルダを作成
+        frame_output_dir = os.path.join(OUTPUT_DIR, OUTPUT_NAME)
+        os.makedirs(frame_output_dir, exist_ok=True)
+        Path(frame_output_dir).mkdir(parents=True, exist_ok=True)
+        
+        print(f"\n--- 画像フレームの保存処理を開始: {frame_output_dir} ---")
 
-        # 1フレームずつ取り出し、LUTを適用して動画に書き込む
-        for i in range(n_frames):
+        # 1フレームずつ取り出し、LUTを適用して画像として保存
+        for i in tqdm.tqdm(range(n_frames), desc="Saving image frames"):
             frame = data[i]
             # 偏差値を0〜100に収めてuint8 型に変換
             clipped_frame = np.clip(frame, 0, 100).astype(np.uint8)
             # LUTを適用するため、グレースケール画像を3チャンネル(BGR)画像へ変換
-            three_channel_frame = cv2.cvtColor(clipped_frame, cv2.COLOR_GRAY2BGR)
+            three_channel_frame = cv2.cvtColor(
+                clipped_frame, cv2.COLOR_GRAY2BGR
+            )
             # LUTを適用し、偏差値を対応する色へ変換
             color_mapped_frame = cv2.LUT(three_channel_frame, colormap_lut)
-            # 動画ファイルに1フレーム書き込む
-            video_writer.write(color_mapped_frame)
 
-        video_writer.release()
-        print("動画の作成が完了しました")
+            # 画像ファイル名を設定 (例: frame_0000.png, frame_0001.png ...)
+            frame_filename = f"frame_{i:04d}{IMAGE_EXT}"
+            frame_filepath = os.path.join(frame_output_dir, frame_filename)
+
+            # 画像保存
+            cv2.imwrite(frame_filepath, color_mapped_frame)
+
+        print("画像フレームの保存が完了しました")
 
         # =============平均と標準偏差の画像作成用=============
         # 平均値画像を保存
         save_statistics_image(
             mean,
-            MEAN_STD_OUTPUT_DIR + "\\" + MEAN_IMAGE_NAME + IMAGE_EXT,
+            os.path.join(MEAN_STD_OUTPUT_DIR, MEAN_IMAGE_NAME + IMAGE_EXT),
         )
 
         # 標準偏差画像を保存
         save_statistics_image(
-            std, MEAN_STD_OUTPUT_DIR + "\\" + STD_IMAGE_NAME + IMAGE_EXT
+            std,
+            os.path.join(MEAN_STD_OUTPUT_DIR, STD_IMAGE_NAME + IMAGE_EXT),
         )
 
         print("平均値画像と標準偏差画像の出力が完了しました")

@@ -43,16 +43,16 @@ my_env["RUN_BY_SUBPROCESS"] = "true"
 
 input_dirs = [
     
-    r"J:\2025-07-20\2025-07-20pic-LT",
-    r"J:\2025-07-20\2025-07-20pic-PL",
-    r"J:\2025-08-30\2025-08-30pic-LT",
-    r"J:\2025-08-30\2025-08-30pic-PL",
-    r"J:\2026-01-17Z\2026-1-17pic-LT",
-    r"J:\2026-01-17Z\2026-1-17pic-PL",
-    r"J:\2025-12-26Z\2025-12-26pic-LT",
-    r"J:\2026-01-12Z\2026-01-12pic-LT",
-    r"J:\2026-02-01Z\2026-02-01LT1",
-    r"J:\2026-07-10\2026-07-10pic\2026-07-10pic_chosen"
+    r"J:\Observe-Data\2025-07-20\2025-07-20pic-LT",
+    r"J:\Observe-Data\2025-07-20\2025-07-20pic-PL",
+    r"J:\Observe-Data\2025-08-30\2025-08-30pic-LT",
+    r"J:\Observe-Data\2025-08-30\2025-08-30pic-PL",
+    r"J:\Observe-Data\2026-01-17\2026-1-17pic-LT",
+    r"J:\Observe-Data\2026-01-17\2026-1-17pic-PL",
+    r"J:\Observe-Data\2025-12-26\2025-12-26pic-LT",
+    r"J:\Observe-Data\2026-01-12\2026-01-12pic-LT",
+    r"J:\Observe-Data\2026-02-01\2026-02-01LT1",
+    r"J:\Observe-Data\2026-07-10\2026-07-10pic\2026-07-10pic_chosen"
     
     
 ]
@@ -81,7 +81,7 @@ EroNum = 0
 SuccessNum = 0
 print("[INFO] from processor:start processing")
 
-for i, base_path in enumerate(input_dirs):
+for i, base_path in enumerate(input_dirs[:]):
     print(f"[INFO] from processor: start parent dir ({i + 1}/{len(input_dirs[2:])})'{base_path}'")
     basename = Path(base_path).name.replace("pic", "")
     
