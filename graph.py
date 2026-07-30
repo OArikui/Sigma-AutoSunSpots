@@ -5,6 +5,11 @@ import matplotlib.pyplot as plt
 from std_score_visualize import extract_sun_mini
 from std_score_visualize import calculate_hensachi
 
+# ファイルの上のほうに追加！
+INPUT_DIR = "./samples"  # 入力フォルダのパス
+CROP_H = 800             # 切り取る高さ（数値）
+CROP_W = 800             # 切り取る幅（数値）
+
 # ダミーの偏差値画像（10フレーム、5×5ピクセル）
 #hensachi = np.random.normal(
 #    loc=50,      # 平均50
