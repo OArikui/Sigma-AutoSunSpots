@@ -49,11 +49,10 @@ from std_score_visualize import extract_sun_mini
 from std_score_visualize import calculate_hensachi
 
 frames, centers = extract_sun_mini(
-    INPUT_DIR,
+    dir_path=INPUT_DIR,  # 関数の引数名は dir_path（または第一引数としてパスを直接渡す）
     h_size=CROP_H,
     w_size=CROP_W
 )
-
 mean, std, hensachi = calculate_hensachi(frames)
 
 # 見たいピクセル座標
@@ -61,6 +60,7 @@ y = 350
 x = 420
 
 # 全フレームのそのピクセルの偏差値を取り出す
+hensachi = hensachi.reshape(-1, CROP_H, CROP_W)
 pixel_values = hensachi[:, y, x]
 
 # フレーム番号
