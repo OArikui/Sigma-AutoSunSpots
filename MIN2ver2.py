@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from typing import List, Tuple, Union, Optional
+from matplotlib.patches import Circle
 
 """
 最小二乗法による円の検出を行う関数
