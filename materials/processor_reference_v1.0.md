@@ -57,7 +57,7 @@
 | 依存ライブラリ       | 子プロセス側スクリプトの依存 (`cv2`, `numpy`, `tqdm`, `MIN2ver2`, `CSV_frames`, `samples.zip_operator` 等) |
 | 親子配置          | `processor.py` と `std_score_visualize.py`など は **同じ作業ディレクトリ** に置く                            |
 
-> [!WARN]
+> [!WARNING]
 > 
 > `subprocess.run(["python", "std_score_visualize.py"], ...)` はファイル名のみを指定するため、`cwd`(現在の作業ディレクトリ)に両ファイルが存在しないと起動できません。
 
