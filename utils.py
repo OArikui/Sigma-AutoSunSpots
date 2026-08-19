@@ -26,6 +26,8 @@ IMAGE_EXT = ".png"  # 画像の拡張子
 
 
 def check_exist_mkdir(path: Path) -> None:
+    if "." in str(path):
+        path = path.parent
     if not path.exists():
         path.resolve().mkdir(parents=True, exist_ok=True)
         print(f"makedir {path.resolve()}")
@@ -119,11 +121,12 @@ def extract_sun_min2(
     for name in tqdm.tqdm(image_names, desc="Processing images"):
         # 16bit(下位12bit)画像を輝度値(1ch)のまま正しく読み込む
         img = (
-            load_image_from_zip_cv2
+            load_image_from_zip_cv2(dir_path, name)
             if zip_operate
             else load_image_from_path_cv2(dir_path, name)
         )
         if img is None:
+            print(f"[WARNING]:No img: {name}")
             continue
         try:
             cx, cy, r = MIN2_ignore_sunspots(img, show=False, debug=False)
@@ -172,6 +175,7 @@ def scale_to_uint8(img: np.ndarray, min_max_normalization: bool = False) -> np.n
         return (normalized * 255).astype(np.uint8)
 
     # float型（一般的に 0.0 ~ 1.0）
+    # float型(階調scaleは16bit範囲)
     elif np.issubdtype(img.dtype, np.floating):
         img_clipped = np.clip(img, 0.0, 1.0)
         return (img_clipped * 255).astype(np.uint8)

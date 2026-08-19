@@ -13,6 +13,7 @@ def isoline(
     levels: list[float],
     line_color: tuple[int] = (0, 255, 0),
     line_thickness: float = 1,
+    debug_show=False,
 ) -> np.ndarray:
     """
     Description:
@@ -36,16 +37,30 @@ def isoline(
         )
 
     if sigma_img.ndim != 2:
-        raise ValueError("sigma_img ndim not good ,is it color?")
+        raise ValueError(f"sigma_img ndim not good:{sigma_img.ndim} ,is it color?")
 
     result_img = raw_image.copy()
 
     for level in levels:
         # 閾値処理で二値化
         _, thresh = cv2.threshold(sigma_img, level, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(result_img, contours, -1, line_color, line_thickness)
+        thresh_uint8 = thresh.astype(np.uint8)
+        if debug_show:
+            cv2.imshow("isoline-threshold", thresh_uint8)
+            cv2.waitKey(0)  # キー入力待ち
+            cv2.destroyAllWindows()
 
+        contours, _ = cv2.findContours(
+            thresh_uint8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        result_img = cv2.drawContours(
+            result_img.astype(np.uint8), contours, -1, line_color, line_thickness
+        )
+        if debug_show:
+            cv2.imshow("isoline-isoline map", result_img)
+            cv2.waitKey(0)  # キー入力待ち
+            cv2.destroyAllWindows()
     return result_img
 
 
@@ -53,16 +68,30 @@ if __name__ == "__main__":
     CROP_H = 600
     CROP_W = 600
 
-    INPUT_DIR = ""
+    INPUT_DIR = r"E:/projects/Sigma-AutoSunSpots/samples/2025-07-20-PL1.zip"
     ISOLINE_DIR = ".\\save\\isoline_highlight"
     ISOLINE_FILE_NAME = "isoline"
 
     image_ext = ".png"
 
+    DEBUGMODE = True
     frames, centers = utils.extract_sun_min2(INPUT_DIR, h_size=CROP_H, w_size=CROP_W)
+    print("frames:", frames.size) if DEBUGMODE else None
     mean, std, _ = utils.calculate_hensachi(frames)
 
-    isoline_highlighted = isoline(std, mean, levels=[600])
+    isoline_highlighted = isoline(std, mean, levels=[600], debug_show=DEBUGMODE)
 
     filename = Path(ISOLINE_DIR) / f"ISOLINE_FILE_NAME{image_ext}"
-    cv2.imwrite(filename.resolve(), isoline_highlighted)
+    utils.check_exist_mkdir(filename)
+
+    if DEBUGMODE:
+        print("filename", filename.resolve())
+        print("img type:", isoline_highlighted.dtype)
+        print(
+            "max:", np.max(isoline_highlighted), "  min:", np.min(isoline_highlighted)
+        )
+
+    if cv2.imwrite(filename.resolve(), isoline_highlighted):
+        print("[INFO]: save image sucessful")
+    else:
+        print("[WARNING]:imwrite failed")
