@@ -7,20 +7,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
 from libs.MIN2ver2 import MIN2_ignore_sunspots
-from samples.zip_operator import get_image_names_from_dir, load_image_from_path_cv2,get_image_names_from_zip,load_image_from_zip_cv2
+from samples.zip_operator import (
+    get_image_names_from_dir,
+    load_image_from_path_cv2,
+    get_image_names_from_zip,
+    load_image_from_zip_cv2,
+)
 
 INPUT_DIR = "./sun_images"  # 処理対象の画像フォルダ
 CROP_H = 800  # 抽出する画像サイズ(縦幅)
 CROP_W = 800  # 抽出する画像サイズ(横幅)
 
 DEBUG = True  # True: デバッグ情報を表示
-MEAN_STD_OUTPUT_DIR = Path(r".\save\mean_std")  # 平均値と標準偏差の出力画像の保存先フォルダ
+MEAN_STD_OUTPUT_DIR = Path(
+    r".\save\mean_std"
+)  # 平均値と標準偏差の出力画像の保存先フォルダ
 IMAGE_EXT = ".png"  # 画像の拡張子
 
-def check_exist_mkdir(path:Path)->None:
+
+def check_exist_mkdir(path: Path) -> None:
     if not path.exists():
-        path.resolve().mkdir(parents=True,exist_ok=True)
+        path.resolve().mkdir(parents=True, exist_ok=True)
         print(f"makedir {path.resolve()}")
+
 
 def get_matplotlib_lut(cmap_name="viridis") -> np.ndarray:
     # Matplotlibのカラーマップを取得 (0~1の値)
@@ -93,19 +102,27 @@ def extract_sun_min2(
             - 各画像の中心座標配列（N,2）
     """
     if dir_path.endswith(".zip"):
-        zip_operate:bool=True
+        zip_operate: bool = True
     else:
-        zip_operate:bool=False
+        zip_operate: bool = False
 
     print(f"---画像の読み込みと切り抜き処理を開始:{dir_path}---")
     # 画像ファイルのみ1000枚取得
-    image_names = get_image_names_from_zip(dir_path)if zip_operate else get_image_names_from_dir(dir_path)
+    image_names = (
+        get_image_names_from_zip(dir_path)
+        if zip_operate
+        else get_image_names_from_dir(dir_path)
+    )
     frames = []
     min2_centers = []
     # tqdmによる進捗表示
     for name in tqdm.tqdm(image_names, desc="Processing images"):
         # 16bit(下位12bit)画像を輝度値(1ch)のまま正しく読み込む
-        img = load_image_from_zip_cv2 if zip_operate else load_image_from_path_cv2(dir_path, name)
+        img = (
+            load_image_from_zip_cv2
+            if zip_operate
+            else load_image_from_path_cv2(dir_path, name)
+        )
         if img is None:
             continue
         try:
@@ -137,6 +154,34 @@ def calculate_hensachi(frames: np.ndarray):
     deviation = np.where(std == 0, 50, 50 + 10 * (frames - mean) / std)
 
     return mean, std, deviation
+
+
+def scale_to_uint8(img: np.ndarray, min_max_normalization: bool = False) -> np.ndarray:
+    """画像のdtypeに応じて0-255のuint8型にスケーリングする関数"""
+    if img.dtype == np.uint8:
+        return img
+
+    if min_max_normalization:
+        img_min = img.min()
+        img_max = img.max()
+        if img_max == img_min:
+            return np.zeros_like(img, dtype=np.uint8)
+
+        # 0.0 ~ 1.0 に正規化してから 255 倍
+        normalized = (img - img_min) / (img_max - img_min)
+        return (normalized * 255).astype(np.uint8)
+
+    # float型（一般的に 0.0 ~ 1.0）
+    elif np.issubdtype(img.dtype, np.floating):
+        img_clipped = np.clip(img, 0.0, 1.0)
+        return (img_clipped * 255).astype(np.uint8)
+
+        # uint16型
+    elif img.dtype == np.uint16:
+        return (img / 256).astype(np.uint8)
+
+    else:
+        raise ValueError("unknown unit")
 
 
 if __name__ == "__main__":
