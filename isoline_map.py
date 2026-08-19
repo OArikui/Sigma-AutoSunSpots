@@ -8,24 +8,24 @@ def isoline(
     sigma_img: np.ndarray,
     raw_image: np.ndarray,
     levels: list[float],
-    line_color:tuple[int]=(0, 255, 0),
-    line_thickness:float =1,
+    line_color: tuple[int] = (0, 255, 0),
+    line_thickness: float = 1,
 ) -> np.ndarray:
-	"""
-	Description:
-		sigma_img上の特定の値の等値線をraw_imageに描画します
-	Arg:
-		sigma_img (np.ndarray):1チャンネル。raw_imageと同じ画像sizeで。
-		raw_img (np.ndarray):sigma_imgと同じ画像sizeで。
-		levels (list[float]):描画する等値線の値。複数可
-		line_color (tuple[int]):等値線の色 RGB
-		line_thickness (float):等値線の太さ
-	Return:
-		result_img (np,ndarray):raw_image上にsigma_imgにおけるlevelsの等値線を描画したもの
-	Raise:
-		ValueError:sigma_img.shape[:2] != raw_image.shape[:2]
-		ValueError:sigma_img.ndim != 2
-"""
+    """
+    Description:
+        sigma_img上の特定の値の等値線をraw_imageに描画します
+    Arg:
+        sigma_img (np.ndarray):1チャンネル。raw_imageと同じ画像sizeで。
+        raw_img (np.ndarray):sigma_imgと同じ画像sizeで。
+        levels (list[float]):描画する等値線の値。複数可
+        line_color (tuple[int]):等値線の色 RGB
+        line_thickness (float):等値線の太さ
+    Return:
+        result_img (np,ndarray):raw_image上にsigma_imgにおけるlevelsの等値線を描画したもの
+    Raise:
+        ValueError:sigma_img.shape[:2] != raw_image.shape[:2]
+        ValueError:sigma_img.ndim != 2
+    """
 
     if sigma_img.shape[:2] != raw_image.shape[:2]:
         raise ValueError(
