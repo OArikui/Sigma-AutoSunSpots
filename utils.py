@@ -1,6 +1,7 @@
 import os
 
 import cv2
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
@@ -12,11 +13,13 @@ CROP_H = 800  # 抽出する画像サイズ(縦幅)
 CROP_W = 800  # 抽出する画像サイズ(横幅)
 
 DEBUG = True  # True: デバッグ情報を表示
-MEAN_STD_OUTPUT_DIR = (
-    r"C:\Users\2025005585\Desktop\python"  # 平均値と標準偏差の出力画像の保存先フォルダ
-)
+MEAN_STD_OUTPUT_DIR = Path(r".\save\mean_std")  # 平均値と標準偏差の出力画像の保存先フォルダ
 IMAGE_EXT = ".png"  # 画像の拡張子
 
+def check_exist_mkdir(path:Path)->None:
+    if not path.exists():
+        path.resolve().mkdir(parents=True,exist_ok=True)
+        print(f"makedir {path.resolve()}")
 
 def get_matplotlib_lut(cmap_name="viridis") -> np.ndarray:
     # Matplotlibのカラーマップを取得 (0~1の値)
@@ -144,9 +147,9 @@ if __name__ == "__main__":
         print("stdサイズ:", std.shape)
         print("================================")
 
+    check_exist_mkdir(MEAN_STD_OUTPUT_DIR)
     data = hensachi
     n_frames, height, width, _ = data.shape
-
     save_statistics_image(
         mean,
         os.path.join(MEAN_STD_OUTPUT_DIR, "mean" + IMAGE_EXT),
