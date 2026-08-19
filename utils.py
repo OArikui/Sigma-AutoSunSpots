@@ -102,9 +102,9 @@ def extract_sun_min2(
             continue
         try:
             cx, cy, r = MIN2_ignore_sunspots(img, show=False, debug=False)
-        except Exception:
+        except Exception:  # noqa: S112,BLE001
             continue
-
+        r = int(r)
         cx = int(cx)
         cy = int(cy)
 
