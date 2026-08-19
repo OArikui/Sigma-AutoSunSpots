@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import cv2
 import numpy as np
+import utils
 
 # isoline map <=> 等値線図
 
@@ -47,4 +50,19 @@ def isoline(
 
 
 if __name__ == "__main__":
+    CROP_H = 600
+    CROP_W = 600
+
     INPUT_DIR = ""
+    ISOLINE_DIR = ".\\save\\isoline_highlight"
+    ISOLINE_FILE_NAME = "isoline"
+
+    image_ext = ".png"
+
+    frames, centers = utils.extract_sun_min2(INPUT_DIR, h_size=CROP_H, w_size=CROP_W)
+    mean, std, _ = utils.calculate_hensachi(frames)
+
+    isoline_highlighted = isoline(std, mean, levels=[600])
+
+    filename = Path(ISOLINE_DIR) / f"ISOLINE_FILE_NAME{image_ext}"
+    cv2.imwrite(filename.resolve(), isoline_highlighted)
