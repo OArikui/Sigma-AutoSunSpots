@@ -1,3 +1,4 @@
+# 旧std_score_visualize
 import os
 
 import cv2
@@ -6,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
 from libs.MIN2ver2 import MIN2_ignore_sunspots
-from samples.zip_operator import get_image_names_from_dir, load_image_from_path_cv2
+from samples.zip_operator import get_image_names_from_dir, load_image_from_path_cv2,get_image_names_from_zip,load_image_from_zip_cv2
 
 INPUT_DIR = "./sun_images"  # 処理対象の画像フォルダ
 CROP_H = 800  # 抽出する画像サイズ(縦幅)
@@ -91,16 +92,20 @@ def extract_sun_min2(
             - 切りぬかれた画像の3次元配列（N,h_size,w_size)
             - 各画像の中心座標配列（N,2）
     """
+    if dir_path.endswith(".zip"):
+        zip_operate:bool=True
+    else:
+        zip_operate:bool=False
 
     print(f"---画像の読み込みと切り抜き処理を開始:{dir_path}---")
     # 画像ファイルのみ1000枚取得
-    image_names = get_image_names_from_dir(dir_path)
+    image_names = get_image_names_from_zip(dir_path)if zip_operate else get_image_names_from_dir(dir_path)
     frames = []
     min2_centers = []
     # tqdmによる進捗表示
     for name in tqdm.tqdm(image_names, desc="Processing images"):
         # 16bit(下位12bit)画像を輝度値(1ch)のまま正しく読み込む
-        img = load_image_from_path_cv2(dir_path, name)
+        img = load_image_from_zip_cv2 if zip_operate else load_image_from_path_cv2(dir_path, name)
         if img is None:
             continue
         try:
