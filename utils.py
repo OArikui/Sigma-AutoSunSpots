@@ -1,16 +1,18 @@
 # 旧std_score_visualize
 import os
+from pathlib import Path
+from typing import Annotated, NoReturn
 
 import cv2
-from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
 from libs.MIN2ver2 import MIN2_ignore_sunspots
+from numpy.typing import NDArray
 from samples.zip_operator import (
     get_image_names_from_dir,
-    load_image_from_path_cv2,
     get_image_names_from_zip,
+    load_image_from_path_cv2,
     load_image_from_zip_cv2,
 )
 
@@ -25,7 +27,7 @@ MEAN_STD_OUTPUT_DIR = Path(
 IMAGE_EXT = ".png"  # 画像の拡張子
 
 
-def check_exist_mkdir(path: Path) -> None:
+def check_exist_mkdir(path: Path) -> NoReturn:
     if "." in str(path):
         path = path.parent
     if not path.exists():
@@ -33,7 +35,7 @@ def check_exist_mkdir(path: Path) -> None:
         print(f"makedir {path.resolve()}")
 
 
-def get_matplotlib_lut(cmap_name="viridis") -> np.ndarray:
+def get_matplotlib_lut(cmap_name: str = "viridis") -> NDArray[np.uint8]:
     # Matplotlibのカラーマップを取得 (0~1の値)
     cmap = plt.get_cmap(cmap_name)
 
@@ -45,7 +47,7 @@ def get_matplotlib_lut(cmap_name="viridis") -> np.ndarray:
     return lut
 
 
-def save_statistics_image(image, filename) -> None:
+def save_statistics_image(image: NDArray[np.uint8], filename: str) -> NoReturn:
     """
     画像をheatmapとして保存
     """
@@ -59,8 +61,8 @@ def save_statistics_image(image, filename) -> None:
 
 
 def crop_and_pad(
-    img: np.ndarray, cx: int, cy: int, crop_h: int, crop_w: int
-) -> np.ndarray:
+    img: NDArray[np.uint16 | np.uint8], cx: int, cy: int, crop_h: int, crop_w: int
+) -> NDArray[np.uint16 | np.uint8]:
     # 切り抜きたい理想の範囲（画面外にはみ出す可能性あり）
     h, w = img.shape
     crop_h = int(crop_h / 2)
@@ -89,7 +91,7 @@ def crop_and_pad(
 
 def extract_sun_min2(
     dir_path: str, h_size: int, w_size: int
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[NDArray[NDArray[np.uint16]], NDArray[list[int]]]:
     """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
     画面端にかかる場合は、足りない部分を黒く塗りつぶします。
 
@@ -115,12 +117,12 @@ def extract_sun_min2(
         if zip_operate
         else get_image_names_from_dir(dir_path)
     )
-    frames = []
+    frames: list = []
     min2_centers = []
     # tqdmによる進捗表示
     for name in tqdm.tqdm(image_names, desc="Processing images"):
         # 16bit(下位12bit)画像を輝度値(1ch)のまま正しく読み込む
-        img = (
+        img: NDArray[np.uint16] = (
             load_image_from_zip_cv2(dir_path, name)
             if zip_operate
             else load_image_from_path_cv2(dir_path, name)
@@ -136,7 +138,7 @@ def extract_sun_min2(
         cx = int(cx)
         cy = int(cy)
 
-        padded = crop_and_pad(img, cx, cy, h_size, w_size)
+        padded: NDArray[np.uint16] = crop_and_pad(img, cx, cy, h_size, w_size)
 
         frames.append(padded)
         min2_centers.append([cx, cy])
@@ -144,22 +146,35 @@ def extract_sun_min2(
     return np.array(frames), np.array(min2_centers)
 
 
-def calculate_hensachi(frames: np.ndarray):
+def calculate_hensachi(
+    frames: NDArray[NDArray[np.uint16]],
+) -> Annotated[
+    tuple[
+        NDArray[np.float64],
+        NDArray[np.float64],
+        NDArray[NDArray[np.float64]],
+    ],
+    "RANGE = 16bit, 16bit, 0-100",
+]:
     """平均画像・標準偏差画像・偏差値画像を計算する。"""
 
     # 平均画像
-    mean = np.mean(frames, axis=0)
+    mean: np.ndarray(np.float64) = np.mean(frames, axis=0)
 
     # 標準偏差画像
-    std = np.std(frames, axis=0)
+    std: np.ndarray(np.float64) = np.std(frames, axis=0)
 
     # 偏差値画像
-    deviation = np.where(std == 0, 50, 50 + 10 * (frames - mean) / std)
+    deviation: np.ndarray(np.float64) = np.where(
+        std == 0, 50, 50 + 10 * (frames - mean) / std
+    )
 
     return mean, std, deviation
 
 
-def scale_to_uint8(img: np.ndarray, min_max_normalization: bool = False) -> np.ndarray:
+def scale_to_uint8(
+    img: np.ndarray, min_max_normalization: bool = False
+) -> NDArray[np.uint8]:
     """画像のdtypeに応じて0-255のuint8型にスケーリングする関数"""
     if img.dtype == np.uint8:
         return img
@@ -175,7 +190,8 @@ def scale_to_uint8(img: np.ndarray, min_max_normalization: bool = False) -> np.n
         return (normalized * 255).astype(np.uint8)
 
     # float型（一般的に 0.0 ~ 1.0）
-    # float型(階調scaleは16bit範囲)
+    # float型(階調scaleは16bit範囲
+    # TODO: 1.0を超えるときはint16範囲で
     elif np.issubdtype(img.dtype, np.floating):
         img_clipped = np.clip(img, 0.0, 1.0)
         return (img_clipped * 255).astype(np.uint8)

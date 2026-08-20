@@ -2,19 +2,20 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from np.typing import NDArray
 import utils
 
 # isoline map <=> 等値線図
 
 
 def isoline(
-    sigma_img: np.ndarray,
-    raw_image: np.ndarray,
+    sigma_img: NDArray[np.float64],
+    raw_image: NDArray[np.uint16 | np.uint8],
     levels: list[float],
     line_color: tuple[int] = (0, 255, 0),
     line_thickness: float = 1,
-    debug_show=False,
-) -> np.ndarray:
+    debug_show:bool =False,
+) -> NDArray[np.uint8]:
     """
     Description:
         sigma_img上の特定の値の等値線をraw_imageに描画します
@@ -25,7 +26,7 @@ def isoline(
         line_color (tuple[int]):等値線の色 RGB
         line_thickness (float):等値線の太さ
     Return:
-        result_img (np,ndarray):raw_image上にsigma_imgにおけるlevelsの等値線を描画したもの
+        result_img (np,ndarray,RGB):raw_image上にsigma_imgにおけるlevelsの等値線を描画したもの
     Raise:
         ValueError:sigma_img.shape[:2] != raw_image.shape[:2]
         ValueError:sigma_img.ndim != 2
@@ -68,6 +69,7 @@ if __name__ == "__main__":
     CROP_H = 600
     CROP_W = 600
 
+    # 画像は16bitで読み込みます
     INPUT_DIR = r"E:/projects/Sigma-AutoSunSpots/samples/2025-07-20-PL1.zip"
     ISOLINE_DIR = ".\\save\\isoline_highlight"
     ISOLINE_FILE_NAME = "isoline"
@@ -75,11 +77,18 @@ if __name__ == "__main__":
     image_ext = ".png"
 
     DEBUGMODE = True
+
     frames, centers = utils.extract_sun_min2(INPUT_DIR, h_size=CROP_H, w_size=CROP_W)
+    # frames: NDArray[NDArray[np.uint16]]
+    # centers: NDArray[list[int]]
+
     print("frames:", frames.size) if DEBUGMODE else None
     mean, std, _ = utils.calculate_hensachi(frames)
+    # mean: NDArray[np.float64] Range = int16
+    # std: NDArray[np.float64] Range =  int16 (理論maxは (2^16)/2くらい)
 
     isoline_highlighted = isoline(std, mean, levels=[600], debug_show=DEBUGMODE)
+    # isoline_highlighted: NDArray[uint8] channel=3
 
     filename = Path(ISOLINE_DIR) / f"ISOLINE_FILE_NAME{image_ext}"
     utils.check_exist_mkdir(filename)
