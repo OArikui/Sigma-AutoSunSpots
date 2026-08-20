@@ -1,7 +1,7 @@
 # 旧std_score_visualize
 import os
 from pathlib import Path
-from typing import Annotated, NoReturn
+from typing import Annotated
 
 import cv2
 import matplotlib.pyplot as plt
@@ -27,7 +27,7 @@ MEAN_STD_OUTPUT_DIR = Path(
 IMAGE_EXT = ".png"  # 画像の拡張子
 
 
-def check_exist_mkdir(path: Path) -> NoReturn:
+def check_exist_mkdir(path: Path) -> None:
     if "." in str(path):
         path = path.parent
     if not path.exists():
@@ -47,7 +47,7 @@ def get_matplotlib_lut(cmap_name: str = "viridis") -> NDArray[np.uint8]:
     return lut
 
 
-def save_statistics_image(image: NDArray[np.uint8], filename: str) -> NoReturn:
+def save_statistics_image(image: NDArray[np.uint8], filename: str) -> None:
     """
     画像をheatmapとして保存
     """
@@ -84,14 +84,14 @@ def crop_and_pad(
     # はみ出していた部分を黒色（0）で埋めて、常にsize x size にする
     padded = cv2.copyMakeBorder(
         cropped, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0
-    )
+    ).astype(img.dtype)
 
     return padded
 
 
 def extract_sun_min2(
     dir_path: str, h_size: int, w_size: int
-) -> tuple[NDArray[NDArray[np.uint16]], NDArray[list[int]]]:
+) -> tuple[NDArray[np.uint16], list[int]]:
     """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
     画面端にかかる場合は、足りない部分を黒く塗りつぶします。
 
@@ -108,7 +108,7 @@ def extract_sun_min2(
     if dir_path.endswith(".zip"):
         zip_operate: bool = True
     else:
-        zip_operate: bool = False
+        zip_operate = False
 
     print(f"---画像の読み込みと切り抜き処理を開始:{dir_path}---")
     # 画像ファイルのみ1000枚取得
@@ -159,13 +159,13 @@ def calculate_hensachi(
     """平均画像・標準偏差画像・偏差値画像を計算する。"""
 
     # 平均画像
-    mean: np.ndarray(np.float64) = np.mean(frames, axis=0)
+    mean: NDArray[np.float64] = np.mean(frames, axis=0)
 
     # 標準偏差画像
-    std: np.ndarray(np.float64) = np.std(frames, axis=0)
+    std: NDArray[np.float64] = np.std(frames, axis=0)
 
     # 偏差値画像
-    deviation: np.ndarray(np.float64) = np.where(
+    deviation: NDArray[np.float64] = np.where(
         std == 0, 50, 50 + 10 * (frames - mean) / std
     )
 

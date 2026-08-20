@@ -4,7 +4,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from numpy.typing import NDarray
+from numpy.typing import NDArray
 
 """
 ZIPファイル操作用のユーティリティ関数
@@ -12,7 +12,7 @@ ZIPファイル操作用のユーティリティ関数
 __version__ = 2.1  # 型ヒントを追加
 
 
-def load_image_from_path_cv2(dirpath: str, image_name: str) -> NDarray[np.uint16]:
+def load_image_from_path_cv2(dirpath: str, image_name: str) -> NDArray[np.uint16]:
     """ファイルシステムから直接画像を読み込んでOpenCV（NumPy配列）形式で返す。
 
     Args:
@@ -56,7 +56,7 @@ def get_image_names_from_dir(
 
 def load_image_from_zip_cv2(
     zip_path: str, image_name: str
-) -> NDarray[NDarray[np.uint16]]:
+) -> NDArray[NDArray[np.uint16]]:
     """ZIPファイルから直接画像を読み込んでOpenCV（NumPy配列）形式で返す。
 
     Args:
@@ -74,7 +74,7 @@ def load_image_from_zip_cv2(
         nparr: bytes = np.frombuffer(img_bytes, np.uint8)
 
         # 画像をデコードする
-        img: NDarray[np.uint16] = cv2.imdecode(
+        img: NDArray[np.uint16] = cv2.imdecode(
             nparr, cv2.IMREAD_UNCHANGED
         )  # 16bit画像を正しく読み込むためにIMREAD_UNCHANGEDを使用
 

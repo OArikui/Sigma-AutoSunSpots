@@ -2,7 +2,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from np.typing import NDArray
+from numpy.typing import NDArray
 import utils
 
 # isoline map <=> 等値線図
@@ -12,9 +12,9 @@ def isoline(
     sigma_img: NDArray[np.float64],
     raw_image: NDArray[np.uint16 | np.uint8],
     levels: list[float],
-    line_color: tuple[int] = (0, 255, 0),
-    line_thickness: float = 1,
-    debug_show:bool =False,
+    line_color: tuple[int, int, int] | None = None,
+    line_thickness: int = 1,
+    debug_show: bool = False,
 ) -> NDArray[np.uint8]:
     """
     Description:
@@ -31,6 +31,8 @@ def isoline(
         ValueError:sigma_img.shape[:2] != raw_image.shape[:2]
         ValueError:sigma_img.ndim != 2
     """
+    if line_color is None:
+        line_color = (0, 255, 0)
 
     if sigma_img.shape[:2] != raw_image.shape[:2]:
         raise ValueError(
@@ -40,7 +42,10 @@ def isoline(
     if sigma_img.ndim != 2:
         raise ValueError(f"sigma_img ndim not good:{sigma_img.ndim} ,is it color?")
 
-    result_img = raw_image.copy()
+    result_img = cv2.normalize(raw_image, None, 0, 255, cv2.NORM_MINMAX)
+    result_img = result_img.astype(np.uint8)
+
+    print("result_img dtype:", result_img.dtype)
 
     for level in levels:
         # 閾値処理で二値化
@@ -56,7 +61,7 @@ def isoline(
         )
 
         result_img = cv2.drawContours(
-            result_img.astype(np.uint8), contours, -1, line_color, line_thickness
+            result_img, contours, -1, line_color, line_thickness
         )
         if debug_show:
             cv2.imshow("isoline-isoline map", result_img)
@@ -70,7 +75,7 @@ if __name__ == "__main__":
     CROP_W = 600
 
     # 画像は16bitで読み込みます
-    INPUT_DIR = r"E:/projects/Sigma-AutoSunSpots/samples/2025-07-20-PL1.zip"
+    INPUT_DIR = r"E:/projects/Sigma_AutoSunSpots/samples/2025-07-20-PL1.zip"
     ISOLINE_DIR = ".\\save\\isoline_highlight"
     ISOLINE_FILE_NAME = "isoline"
 
