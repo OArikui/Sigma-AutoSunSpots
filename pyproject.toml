@@ -14,10 +14,19 @@ target-version = "py313"
 line-length = 88
 
 [tool.ruff.lint]
+
+exclude = [
+    "MIN2ver2.py",
+]
 select = [
     "E",
     "F",
-    "I"
+    "I",
+    "B",
+    "UP",
+    "SIM",
+    "PTH",
+    "A",
     "ANN",
 ]
 ignore = [
