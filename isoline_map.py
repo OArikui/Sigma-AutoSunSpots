@@ -84,6 +84,10 @@ if __name__ == "__main__":
 
     DEBUGMODE = True
 
+    sample_win_resolve = Path(INPUT_DIR).resolve()
+    sample_name = (
+        str(sample_win_resolve.parent.name) + "-" + str(sample_win_resolve.name)
+    )
     frames, centers = utils.extract_sun_min2(INPUT_DIR, h_size=CROP_H, w_size=CROP_W)
     # frames: NDArray[NDArray[np.uint16]]
     # centers: NDArray[list[int]]
@@ -95,8 +99,7 @@ if __name__ == "__main__":
 
     isoline_highlighted = isoline(std, mean, levels=[600], debug_show=DEBUGMODE)
     # isoline_highlighted: NDArray[uint8] channel=3
-
-    filename = Path(ISOLINE_DIR) / f"ISOLINE_FILE_NAME{image_ext}"
+    filename = Path(ISOLINE_DIR) / f"ISOLINE_FILE_NAME__{sample_name}{image_ext}"
     utils.check_exist_mkdir(filename)
 
     if DEBUGMODE:
