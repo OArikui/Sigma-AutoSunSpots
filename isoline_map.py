@@ -13,7 +13,7 @@ def isoline(
     sigma_img: NDArray[np.float64],
     raw_image: NDArray[np.uint16 | np.uint8],
     levels: list[float],
-    line_color: tuple[int, int, int] | None = None,
+    line_color: tuple[int, int, int] | None = None,  # RGB,default=(0,255,0)
     line_thickness: int = 1,
     debug_show: bool = False,
 ) -> NDArray[np.uint8]:
@@ -32,26 +32,37 @@ def isoline(
         ValueError:sigma_img.shape[:2] != raw_image.shape[:2]
         ValueError:sigma_img.ndim != 2
     """
+
     if line_color is None:
         line_color = (0, 255, 0)
 
+    R, G, B = line_color
+    line_color_BGR = B, G, R
+
     if sigma_img.shape[:2] != raw_image.shape[:2]:
         raise ValueError(
-            "sigma_img と raw_image の画像サイズが一致しません\nsigma:{sigma_img.shape}\nraw  :{raw_image.shape}"
+            f"sigma_img と raw_image の画像サイズが一致しません\n"
+            f"sigma:{sigma_img.shape}\nraw  :{raw_image.shape}"
         )
 
     if sigma_img.ndim != 2:
         raise ValueError(f"sigma_img ndim not good:{sigma_img.ndim} ,is it color?")
 
-    result_img = cv2.normalize(raw_image, None, 0, 255, cv2.NORM_MINMAX)
-    result_img = result_img.astype(np.uint8)
+    # 1. 0-255の8bitに正規化
+    norm_img = cv2.normalize(raw_image, None, 0, 255, cv2.NORM_MINMAX)
+    norm_img = norm_img.astype(np.uint8)
 
-    print("result_img dtype:", result_img.dtype)
+    # 2. グレースケール(1ch)の場合は3ch(BGR)に変換してカラー描画を可能にする
+    if norm_img.ndim == 2 or norm_img.shape[2] == 1:
+        result_img = cv2.cvtColor(norm_img, cv2.COLOR_GRAY2BGR)
+    else:
+        result_img = norm_img.copy()
 
     for level in levels:
         # 閾値処理で二値化
         _, thresh = cv2.threshold(sigma_img, level, 255, cv2.THRESH_BINARY)
         thresh_uint8 = thresh.astype(np.uint8)
+
         if debug_show:
             cv2.imshow("isoline-threshold", thresh_uint8)
             cv2.waitKey(0)  # キー入力待ち
@@ -62,12 +73,14 @@ def isoline(
         )
 
         result_img = cv2.drawContours(
-            result_img, contours, -1, line_color, line_thickness
+            result_img, contours, -1, line_color_BGR, line_thickness
         )
+
         if debug_show:
             cv2.imshow("isoline-isoline map", result_img)
             cv2.waitKey(0)  # キー入力待ち
             cv2.destroyAllWindows()
+
     return result_img
 
 
