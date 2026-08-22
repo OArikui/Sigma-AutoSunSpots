@@ -3,6 +3,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from numpy.typing import NDArray
+
 import utils
 
 # isoline map <=> 等値線図

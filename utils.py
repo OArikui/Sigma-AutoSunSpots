@@ -1,5 +1,4 @@
 # 旧std_score_visualize
-import os
 from pathlib import Path
 from typing import Annotated
 
@@ -7,8 +6,9 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
-from libs.MIN2ver2 import MIN2_ignore_sunspots
 from numpy.typing import NDArray
+
+from libs.MIN2ver2 import MIN2_ignore_sunspots
 from samples.zip_operator import (
     get_image_names_from_dir,
     get_image_names_from_zip,
@@ -173,7 +173,9 @@ def calculate_hensachi(
 
 
 def scale_to_uint8(
-    img: np.ndarray, min_max_normalization: bool = False
+    img: np.ndarray,
+    min_max_normalization: bool = False,
+    float_range: tuple[float, float] = (0.0, 1.0),
 ) -> NDArray[np.uint8]:
     """画像のdtypeに応じて0-255のuint8型にスケーリングする関数"""
     if img.dtype == np.uint8:
@@ -189,12 +191,18 @@ def scale_to_uint8(
         normalized = (img - img_min) / (img_max - img_min)
         return (normalized * 255).astype(np.uint8)
 
-    # float型（一般的に 0.0 ~ 1.0）
-    # float型(階調scaleは16bit範囲
-    # TODO: 1.0を超えるときはint16範囲で
+        # float
     elif np.issubdtype(img.dtype, np.floating):
-        img_clipped = np.clip(img, 0.0, 1.0)
-        return (img_clipped * 255).astype(np.uint8)
+        floor, loof = float_range
+        img_max = np.max(img)
+        img_min = np.min(img)
+        if floor > img_min or loof < img_max:
+            raise ValueError(
+                f"__bad range for the img \nimage_range:{img_min, img_max}\nscale_range{floor, loof}"
+            )
+        loofed_img = img * (255 / loof)
+        cliped_img = loofed_img - floor
+        return cliped_img.astype(np.uint8)
 
         # uint16型
     elif img.dtype == np.uint16:
@@ -222,12 +230,12 @@ if __name__ == "__main__":
     n_frames, height, width, _ = data.shape
     save_statistics_image(
         mean,
-        os.path.join(MEAN_STD_OUTPUT_DIR, "mean" + IMAGE_EXT),
+        str(Path(MEAN_STD_OUTPUT_DIR) / f"mean{IMAGE_EXT}"),
     )  # 平均値画像と標準偏差画像の出力が完了しました
 
     save_statistics_image(
         std,
-        os.path.join(MEAN_STD_OUTPUT_DIR, "std" + IMAGE_EXT),
+        str(Path(MEAN_STD_OUTPUT_DIR) / f"mean{IMAGE_EXT}"),
     )  # 標準偏差画像
 
     print("平均値画像と標準偏差画像の出力が完了しました")

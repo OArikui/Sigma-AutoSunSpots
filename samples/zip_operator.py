@@ -21,7 +21,7 @@ def load_image_from_path_cv2(dirpath: str, image_name: str) -> NDArray[np.uint16
     Returns:
         np.ndarray: デコードされた画像データ（BGR形式のNumPy配列）。
     """
-    image_path: str = os.path.join(dirpath, image_name)
+    image_path: str = str(Path(dirpath) \ image_name)
     # 16bit画像を正しく読み込むためにIMREAD_UNCHANGEDを使用
     return cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
 
