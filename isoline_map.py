@@ -9,6 +9,55 @@ import utils
 # isoline map <=> 等値線図
 
 
+def get_contour_bboxes(
+    contours: list[NDArray[np.int32]], min_area: int = 0, debug: bool = False
+) -> list[tuple[int, int, int, int]]:
+    """画像の指定された値を持つ連結成分( connected component ) の外接矩形（ Bounding Box = bbox）を取得する関数
+
+    Parameters
+    ----------
+    contours: list[NDArray[np.int32]]
+        cv2.findContours の戻り値. contours[i].shape == (N, 1, 2)
+    min_area : int, optional
+        指定した面積（ピクセル数）未満のノイズを除外する閾値, by default 0
+    debug : bool
+        検出したbboxesのdebug情報を標準出力する
+    Returns
+    -------
+    bboxes : [tuple[int, int, int, int]]
+        検出された bound box のリスト [(x, y, w, h), ...] x,y は bound の左上(原点に一番近い頂点)の座標
+
+        Notes
+        -------
+        bbox:(x,y,w,h)
+        Origin on the image
+        (0, 0)────────────────────────────┐
+        │                                 │
+        │     (x, y) ─────────── w ──────┐│
+        │       │                        ││
+        │       │[ connected component ] ││
+        │       h                        ││
+        │       │                        ││
+        │       └─────────────────────── ○│
+        │                          (x+w, y+h)
+        └─────────────────────────────────┘
+    """
+
+    bboxes = []
+    for i, cnt in enumerate(contours):
+        area = cv2.contourArea(cnt)
+        x, y, w, h = cv2.boundingRect(cnt)
+        if debug:
+            print(f"[debug] 計算された Bounding ({i}) : bbox = {x, y, w, h}")
+        if area >= min_area:
+            bboxes.append((x, y, w, h))
+        else:
+            if debug:
+                print(
+                    f"[debug] Bounding ({i}) は {area} < min_area({min_area}) により無視されます。"
+                )
+
+    return bboxes
 def isoline(
     sigma_img: NDArray[np.float64],
     raw_image: NDArray[np.uint16 | np.uint8],
