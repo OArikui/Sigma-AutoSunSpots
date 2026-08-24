@@ -200,7 +200,7 @@ def isoline(
             cv2.waitKey(0)  # キー入力待ち
             cv2.destroyAllWindows()
 
-    return result_img
+    return result_img, thresh_uint8
 
 
 if __name__ == "__main__":
@@ -216,7 +216,10 @@ if __name__ == "__main__":
         "2026-01-17-PL1.zip",
     ]
     ISOLINE_DIR = ".\\save\\isoline_highlight"
-    ISOLINE_FILE_NAME = "isoline"
+    ISOLINE_FILE_NAME = "bounded"
+
+    SIGMA_DIR = ".\\save\\Sigma_img"
+    SIGMA_THRESH_FILE_NAME = "thresh_uint8"
 
     image_ext = ".png"
 
@@ -245,20 +248,30 @@ if __name__ == "__main__":
         # mean: NDArray[np.float64] Range = int16
         # std: NDArray[np.float64] Range =  int16 (理論maxは (2^16)/2くらい)
 
-        isoline_highlighted = isoline(
+        highlighted, thresh_uint8 = isoline(
             std, mean, levels=[600], debug_show=DEBUGMODE, highlight_bound=BOUND
         )
-        # isoline_highlighted: NDArray[uint8] channel=3
-        filename = Path(ISOLINE_DIR) / f"ISOLINE_FILE_NAME__{sample_name}{image_ext}"
+        # highlighted: NDArray[uint8] channel=3
+        filename = Path(ISOLINE_DIR) / f"{ISOLINE_FILE_NAME}__{sample_name}{image_ext}"
         utils.check_exist_mkdir(filename)
+
+        thresh_name = (
+            Path(ISOLINE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
+        )
+        utils.check_exist_mkdir(thresh_name)
 
         if DEBUGMODE:
             logger.debug(f"figure save path{filename.resolve()}")
-            logger.debug(f"figure image type:{isoline_highlighted.dtype}")
-            logger.debug(f"  max:{np.max(isoline_highlighted)}")
-            logger.debug(f"  min:{np.min(isoline_highlighted)}")
+            logger.debug(f"figure image type:{highlighted.dtype}")
+            logger.debug(f"  max:{np.max(highlighted)}")
+            logger.debug(f"  min:{np.min(highlighted)}")
 
-        if cv2.imwrite(filename.resolve(), isoline_highlighted):
-            logger.info("save image sucessful")
+        if cv2.imwrite(filename.resolve(), highlighted):
+            logger.info("save highlighted image sucessful")
         else:
-            logger.warning("imwrite failed")
+            logger.warning("highlighted image imwrite failed")
+
+        if cv2.imwrite(thresh_name.resolve(), thresh_uint8):
+            logger.info("save thresh_uint8 image sucessful")
+        else:
+            logger.warning("thresh_uint8 imwrite failed")

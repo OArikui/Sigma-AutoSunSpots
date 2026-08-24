@@ -4,3 +4,4 @@ samples/2026-01-12-LT1/
 samples/2026-1-17-PL1/
 .vscode/settings.json
 **/__pycache__/
+save/logs/
