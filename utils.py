@@ -21,9 +21,7 @@ CROP_H = 800  # 抽出する画像サイズ(縦幅)
 CROP_W = 800  # 抽出する画像サイズ(横幅)
 
 DEBUG = True  # True: デバッグ情報を表示
-MEAN_STD_OUTPUT_DIR = Path(
-    r".\save\mean_std"
-)  # 平均値と標準偏差の出力画像の保存先フォルダ
+MEAN_STD_OUTPUT_DIR = Path(r".\save\mean_std")  # 平均値と標準偏差の出力画像の保存先フォルダ
 IMAGE_EXT = ".png"  # 画像の拡張子
 
 
@@ -41,9 +39,7 @@ def get_matplotlib_lut(cmap_name: str = "viridis") -> NDArray[np.uint8]:
 
     indices = np.linspace(0, 1, 256)  # 0~255のインデックス
     colors = cmap(indices)[:, :3] * 255  # RGBを取得し、0~255の範囲に変換
-    lut = (
-        colors[:, ::-1].astype(np.uint8).reshape((256, 1, 3))
-    )  # BGRに変換し、(256, 1, 3)の形状に整形
+    lut = colors[:, ::-1].astype(np.uint8).reshape((256, 1, 3))  # BGRに変換し、(256, 1, 3)の形状に整形
     return lut
 
 
@@ -52,9 +48,7 @@ def save_statistics_image(image: NDArray[np.uint8], filename: str) -> None:
     画像をheatmapとして保存
     """
 
-    three_channel_image = cv2.cvtColor(
-        image, cv2.COLOR_GRAY2BGR
-    )  # LUT適用のため3チャンネル化
+    three_channel_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)  # LUT適用のため3チャンネル化
 
     color_mapped_image = cv2.LUT(three_channel_image, get_matplotlib_lut())
     cv2.imwrite(filename, color_mapped_image)
@@ -82,16 +76,14 @@ def crop_and_pad(
     cropped = img[crop_y1:crop_y2, crop_x1:crop_x2]
 
     # はみ出していた部分を黒色（0）で埋めて、常にsize x size にする
-    padded = cv2.copyMakeBorder(
-        cropped, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0
-    ).astype(img.dtype)
+    padded = cv2.copyMakeBorder(cropped, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0).astype(
+        img.dtype
+    )
 
     return padded
 
 
-def extract_sun_min2(
-    dir_path: str, h_size: int, w_size: int
-) -> tuple[NDArray[np.uint16], list[int]]:
+def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[np.uint16], nd.array]:
     """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
     画面端にかかる場合は、足りない部分を黒く塗りつぶします。
 
@@ -103,7 +95,7 @@ def extract_sun_min2(
     Returns:
         tuple[np.ndarray, np.ndarray]:
             - 切りぬかれた画像の3次元配列（N,h_size,w_size)
-            - 各画像の中心座標配列（N,2）
+            - 各画像の太陽近似円stat（(x,y),r）
     """
     if dir_path.endswith(".zip"):
         zip_operate: bool = True
@@ -112,20 +104,14 @@ def extract_sun_min2(
 
     print(f"---画像の読み込みと切り抜き処理を開始:{dir_path}---")
     # 画像ファイルのみ1000枚取得
-    image_names = (
-        get_image_names_from_zip(dir_path)
-        if zip_operate
-        else get_image_names_from_dir(dir_path)
-    )
+    image_names = get_image_names_from_zip(dir_path) if zip_operate else get_image_names_from_dir(dir_path)
     frames: list = []
-    min2_centers = []
+    min2_stats = []
     # tqdmによる進捗表示
     for name in tqdm.tqdm(image_names, desc="Processing images"):
         # 16bit(下位12bit)画像を輝度値(1ch)のまま正しく読み込む
         img: NDArray[np.uint16] = (
-            load_image_from_zip_cv2(dir_path, name)
-            if zip_operate
-            else load_image_from_path_cv2(dir_path, name)
+            load_image_from_zip_cv2(dir_path, name) if zip_operate else load_image_from_path_cv2(dir_path, name)
         )
         if img is None:
             print(f"[WARNING]:No img: {name}")
@@ -141,9 +127,9 @@ def extract_sun_min2(
         padded: NDArray[np.uint16] = crop_and_pad(img, cx, cy, h_size, w_size)
 
         frames.append(padded)
-        min2_centers.append([cx, cy])
+        min2_stats.append([cx, cy, r])
 
-    return np.array(frames), np.array(min2_centers)
+    return np.array(frames), np.array(min2_stats)
 
 
 def calculate_hensachi(
@@ -165,9 +151,7 @@ def calculate_hensachi(
     std: NDArray[np.float64] = np.std(frames, axis=0)
 
     # 偏差値画像
-    deviation: NDArray[np.float64] = np.where(
-        std == 0, 50, 50 + 10 * (frames - mean) / std
-    )
+    deviation: NDArray[np.float64] = np.where(std == 0, 50, 50 + 10 * (frames - mean) / std)
 
     return mean, std, deviation
 
