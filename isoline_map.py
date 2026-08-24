@@ -79,14 +79,8 @@ if __name__ == "__main__":
         "2026-01-17-PL1.zip",
     ]
     SAVE_DIR = f".\\save\\isoline_highlight\\P{sigma_threshold}_{min_area}"
-    ISOLINE_FILE_NAME = "bounded"
-
-    SIGMA_THRESH_FILE_NAME = "thresh_uint8"
 
     image_ext = ".png"
-
-    BOUND = True
-    DEBUGMODE = True
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -135,12 +129,15 @@ if __name__ == "__main__":
         logger.debug(f"sample_name: '{sample_name}'")
 
         logger.info("set save path")
-        #  highlighted と thresh_img の保存パスを設定
-        highlight_path = Path(SAVE_DIR) / f"{ISOLINE_FILE_NAME}__{sample_name}{image_ext}"
-        utils.check_exist_mkdir(highlight_path)
-        logger.debug(f"highlight_path: '{highlight_path}'")
+        isoline_path = Path(SAVE_DIR) / f"isoline__{sample_name}{image_ext}"
+        utils.check_exist_mkdir(isoline_path)
+        logger.debug(f"isoline_path: '{isoline_path}'")
 
-        thresh_path = Path(SAVE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
+        bounded_path = Path(SAVE_DIR) / f"bounded__{sample_name}{image_ext}"
+        utils.check_exist_mkdir(bounded_path)
+        logger.debug(f"bounded_path: '{bounded_path}'")
+
+        thresh_path = Path(SAVE_DIR) / f"thresh_uint8__{sample_name}{image_ext}"
         utils.check_exist_mkdir(thresh_path)
         logger.debug(f"thresh_path: '{thresh_path}'")
 
@@ -167,32 +164,30 @@ if __name__ == "__main__":
         logger.debug(f"num of contours  : {len(contours)}")
 
         logger.info(f"bounding and inspecting contours (bboxstat = (x,y,w,h,area))")
-        if BOUND:
-            un_compatible_Fcnt = []
-            highlights_Fcnt = []
-            for i, cnt in enumerate(contours):
-                compatible = True
 
-                x, y, w, h = cv2.boundingRect(cnt)
-                area = cv2.contourArea(cnt)
-                logger.debug(f"検出された bbox ({str(i).zfill(len(str(len(contours))))}) :{x, y, w, h, area} ")
+        un_compatible_Fcnt = []
+        bound_Fcnt = []
+        for i, cnt in enumerate(contours):
+            compatible = True
 
-                pts = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=np.int32)
-                pts = pts.reshape((-1, 1, 2))
+            x, y, w, h = cv2.boundingRect(cnt)
+            area = cv2.contourArea(cnt)
+            logger.debug(f"検出された bbox ({str(i).zfill(len(str(len(contours))))}) :{x, y, w, h, area} ")
 
-                if area < min_area:
-                    compatible = False
-                    logger.debug(f" ノイズとして除外しました {area} < {min_area} (min_area)")
-                elif np.max([w, h]) >= mean_r * diame_ratio * 2:
-                    compatible = False
-                    logger.debug(f" 縁として除外しました {np.max([w, h])} (長辺) > {mean_r * diame_ratio * 2}")
+            pts = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=np.int32)
+            pts = pts.reshape((-1, 1, 2))
 
-                if compatible:
-                    highlights_Fcnt.append(pts)
-                else:
-                    un_compatible_Fcnt.append(pts)
-        else:
-            highlights_Fcnt = contours
+            if area < min_area:
+                compatible = False
+                logger.debug(f" ノイズとして除外しました {area} < {min_area} (min_area)")
+            elif np.max([w, h]) >= mean_r * diame_ratio * 2:
+                compatible = False
+                logger.debug(f" 縁として除外しました {np.max([w, h])} (長辺) > {mean_r * diame_ratio * 2}")
+
+            if compatible:
+                bound_Fcnt.append(pts)
+            else:
+                un_compatible_Fcnt.append(pts)
 
         logger.debug(f"Number of defective items : {len(un_compatible_Fcnt)} / {len(contours)}")
 
@@ -207,12 +202,19 @@ if __name__ == "__main__":
         else:
             background_img = norm_img
 
-        highlighted = cv2.drawContours(background_img, highlights_Fcnt, -1, line_color_BGR, line_thickness)
+        bounded_img = cv2.drawContours(background_img, bound_Fcnt, -1, line_color_BGR, line_thickness)
 
-        if cv2.imwrite(highlight_path.resolve(), highlighted):
-            logger.info("save highlighted image sucessful")
+        isoline_img = cv2.drawContours(background_img, contours, -1, line_color_BGR, line_thickness)
+
+        if cv2.imwrite(bounded_path.resolve(), bounded_img):
+            logger.info("save bounded_img image sucessful")
         else:
-            logger.warning("highlighted image imwrite failed")
+            logger.warning("bounded_img image imwrite failed")
+
+        if cv2.imwrite(isoline_path.resolve(), isoline_img):
+            logger.info("save isoline_img image sucessful")
+        else:
+            logger.warning("isoline_img image imwrite failed")
 
         if cv2.imwrite(thresh_path.resolve(), thresh_uint8):
             logger.info("save thresh_uint8 image sucessful")
