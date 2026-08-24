@@ -63,7 +63,14 @@ if __name__ == "__main__":
     CROP_H = 600
     CROP_W = 600
 
-    # 画像は16bitで読み込みます
+    sigma_threshold = 600  # int16bit 想定
+
+    min_area = 0.0  # 指定した面積（ピクセル数）未満のノイズを除外する閾値 (0.0~)
+    diame_ratio = 0.5  # 縁と判断される bbox の 長辺 の 太陽直径 に対する 最小 の 割合 (0.0~1.0)
+
+    line_color_BGR = (0, 255, 0)
+    line_thickness = 1  # 画像は16bitで読み込みます
+
     INPUT_PARENT_DIR = Path(r"E:/projects/Sigma_AutoSunSpots/samples/")
     INPUT_DIR_NAMES = [
         "2025-07-20-PL1.zip",
@@ -71,21 +78,12 @@ if __name__ == "__main__":
         "2026-01-12-LT1.zip",
         "2026-01-17-PL1.zip",
     ]
-    ISOLINE_DIR = ".\\save\\isoline_highlight"
+    SAVE_DIR = f".\\save\\isoline_highlight\\P{sigma_threshold}_{min_area}"
     ISOLINE_FILE_NAME = "bounded"
 
-    SIGMA_DIR = ".\\save\\Sigma_img"
     SIGMA_THRESH_FILE_NAME = "thresh_uint8"
 
     image_ext = ".png"
-
-    sigma_threshold = 600  # int16bit 想定
-
-    min_area = 0.0  # 指定した面積（ピクセル数）未満のノイズを除外する閾値 (0.0~)
-    diame_ratio = 0.5  # 縁と判断される bbox の 長辺 の 太陽直径 に対する 最小 の 割合 (0.0~1.0)
-
-    line_color_BGR = (0, 255, 0)
-    line_thickness = 1
 
     BOUND = True
     DEBUGMODE = True
@@ -97,8 +95,9 @@ if __name__ == "__main__":
     formatter = logging.Formatter(
         "%(asctime)s [%(module)s.%(funcName)s:%(lineno)d]   [%(levelname)s] %(message)s"
     )
+    log_path = Path(SAVE_DIR) / "{ts}.log"
 
-    file_handler = logging.FileHandler(f"save/logs/{ts}.log", mode="a", encoding="utf-8")
+    file_handler = logging.FileHandler(f"{log_path.resolve()}", mode="a", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
 
@@ -137,11 +136,11 @@ if __name__ == "__main__":
 
         logger.info("set save path")
         #  highlighted と thresh_img の保存パスを設定
-        highlight_path = Path(ISOLINE_DIR) / f"{ISOLINE_FILE_NAME}__{sample_name}{image_ext}"
+        highlight_path = Path(SAVE_DIR) / f"{ISOLINE_FILE_NAME}__{sample_name}{image_ext}"
         utils.check_exist_mkdir(highlight_path)
         logger.debug(f"highlight_path: '{highlight_path}'")
 
-        thresh_path = Path(ISOLINE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
+        thresh_path = Path(SAVE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
         utils.check_exist_mkdir(thresh_path)
         logger.debug(f"thresh_path: '{thresh_path}'")
 
