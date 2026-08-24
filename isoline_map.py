@@ -1,3 +1,6 @@
+# isoline map <=> 等値線図
+import logging
+from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -5,10 +8,6 @@ import numpy as np
 from numpy.typing import NDArray
 
 import utils
-
-# isoline map <=> 等値線図
-import logging
-from datetime import datetime
 
 
 def get_contour_bboxes(
