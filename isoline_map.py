@@ -12,7 +12,7 @@ import utils
 def get_contour_bboxes(
     contours: list[NDArray[np.int32]], min_area: int = 0, debug: bool = False
 ) -> list[tuple[int, int, int, int]]:
-    """画像の指定された値を持つ連結成分( connected component ) の外接矩形（ Bounding Box = bbox）を取得する関数
+    """cv2.findContoursの戻り値countoursからbboxesのリストを返す関数
 
     Parameters
     ----------
@@ -64,6 +64,7 @@ def isoline(
     sigma_img: NDArray[np.float64],
     raw_image: NDArray[np.uint16 | np.uint8],
     levels: list[float],
+    highlight_bound: bool = False,
     line_color: tuple[int, int, int] | None = None,  # RGB,default=(0,255,0)
     line_thickness: int = 1,
     debug_show: bool = False,
@@ -131,9 +132,32 @@ def isoline(
             thresh_uint8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
         )
 
-        result_img = cv2.drawContours(
-            result_img, contours, -1, line_color_BGR, line_thickness
-        )
+        if highlight_bound:
+            bboxes = get_contour_bboxes(countors, debug=debug_show)
+            for x, y, w, h in bboxes:
+                if line_thickness == -1:  # 塗りつぶし矩形
+                    cv2.rectangle(
+                        result_img,
+                        (x, y),
+                        (x + w, y + h),
+                        line_color_BGR,
+                        thickness=cv2.FILLED,
+                    )
+                else:
+                    cv2.rectangle(
+                        result_img,
+                        (x, y),
+                        (x + w, y + h),
+                        line_color_BGR,
+                        thickness=line_thickness,
+                        lineType=cv2.LINE_AA,
+                    )
+        else:
+            highlight = countors
+
+            result_img = cv2.drawContours(
+                result_img, highlight, -1, line_color_BGR, line_thickness
+            )
 
         if debug_show:
             cv2.imshow("isoline-isoline map", result_img)
