@@ -1,4 +1,5 @@
 # 旧std_score_visualize
+import logging
 from pathlib import Path
 from typing import Annotated
 
@@ -8,13 +9,15 @@ import numpy as np
 import tqdm
 from numpy.typing import NDArray
 
-from libs.MIN2ver2 import MIN2_ignore_sunspots
+from libs.MIN2ver2 import MIN2_ignore_sunspots, version
 from samples.zip_operator import (
     get_image_names_from_dir,
     get_image_names_from_zip,
     load_image_from_path_cv2,
     load_image_from_zip_cv2,
 )
+
+logger = logging.getLogger(__name__)
 
 INPUT_DIR = "./sun_images"  # 処理対象の画像フォルダ
 CROP_H = 800  # 抽出する画像サイズ(縦幅)
@@ -83,7 +86,7 @@ def crop_and_pad(
     return padded
 
 
-def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[np.uint16], nd.array]:
+def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[np.uint16], np.ndarray]:
     """フォルダ内の太陽画像から太陽中心を算出し、指定サイズで切りぬいた画像配列を返します。
     画面端にかかる場合は、足りない部分を黒く塗りつぶします。
 
@@ -97,14 +100,23 @@ def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[n
             - 切りぬかれた画像の3次元配列（N,h_size,w_size)
             - 各画像の太陽近似円stat（(x,y),r）
     """
+    getted_param = {"h_size": h_size, "w_size": w_size, "dirpath": dir_path}
+    logger.debug(f"extract_sun_min2 param {getted_param}")
+
     if dir_path.endswith(".zip"):
         zip_operate: bool = True
+        logger.info("zip_operate mode")
     else:
         zip_operate = False
+
+    min2_params = {"n": 10, "light_threshold": 50, "limb_wigth": 24}
+    logger.debug(f"min2_version:{version}")
+    logger.debug(f"min2_params:{min2_params}")
 
     print(f"---画像の読み込みと切り抜き処理を開始:{dir_path}---")
     # 画像ファイルのみ1000枚取得
     image_names = get_image_names_from_zip(dir_path) if zip_operate else get_image_names_from_dir(dir_path)
+    logger.debug(f"image_names: \n{image_names}")
     frames: list = []
     min2_stats = []
     # tqdmによる進捗表示
@@ -114,22 +126,28 @@ def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[n
             load_image_from_zip_cv2(dir_path, name) if zip_operate else load_image_from_path_cv2(dir_path, name)
         )
         if img is None:
-            print(f"[WARNING]:No img: {name}")
+            logger.Warning(f"No img: {name}")
             continue
         try:
-            cx, cy, r = MIN2_ignore_sunspots(img, show=False, debug=False)
+            cx, cy, r = MIN2_ignore_sunspots(img, show=False, debug=False, **min2_params)
         except Exception:  # noqa: S112,BLE001
             continue
-        r = int(r)
-        cx = int(cx)
-        cy = int(cy)
 
-        padded: NDArray[np.uint16] = crop_and_pad(img, cx, cy, h_size, w_size)
+        padded: NDArray[np.uint16] = crop_and_pad(img, int(cx), int(cy), h_size, w_size)
 
         frames.append(padded)
         min2_stats.append([cx, cy, r])
 
-    return np.array(frames), np.array(min2_stats)
+    min2_stats = np.array(min2_stats)
+    cxes = min2_stats[:, 0]
+    cyes = min2_stats[:, 1]
+    rs = min2_stats[:, 2]
+
+    logger.debug(f"cir_stat cxes (mean:{np.mean(cxes)},std:{np.std(cxes)})")
+    logger.debug(f"cir_stat cyes (mean:{np.mean(cyes)},std:{np.std(cyes)})")
+    logger.debug(f"cir_stat rs   (mean:{np.mean(rs)},std:{np.std(rs)})")
+
+    return np.array(frames), min2_stats
 
 
 def calculate_hensachi(

@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     sigma_threshold = 600  # int16bit 想定
 
-    min_area = 0  # 指定した面積（ピクセル数）未満のノイズを除外する閾値 (0~)
+    min_area = 0.0  # 指定した面積（ピクセル数）未満のノイズを除外する閾値 (0.0~)
     diame_ratio = 0.5  # 縁と判断される bbox の 長辺 の 太陽直径 に対する 最小 の 割合 (0.0~1.0)
 
     line_color_BGR = (0, 255, 0)
@@ -92,9 +92,11 @@ if __name__ == "__main__":
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s [%(module)s.%(funcName)s:%(lineno)d]   [%(levelname)s] %(message)s"
+    )
 
     file_handler = logging.FileHandler(f"save/logs/{ts}.log", mode="a", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
@@ -110,6 +112,9 @@ if __name__ == "__main__":
     logger.info("処理を開始しました")
     logger.info("ロガー経由のメッセージです")
 
+    logger.debug(f"sigma_threshold:{sigma_threshold}")
+    logger.debug(f"min_area:{min_area}")
+    logger.debug(f"diame_ratio:{diame_ratio}")
     # param_valid
     if min_area < 0:
         raise ValueError("param.min_area should be 0 or greater.")
@@ -120,35 +125,49 @@ if __name__ == "__main__":
         logger.info(f"=== SunSpots highlight process ({i + 1} / {len(INPUT_DIR_NAMES)}) ===")
         logger.info(f" current = {INPUT_DIR_NAME}")
 
+        logger.info(f"--- setting path ---")
+        logger.info(f"set sample path")
         INPUT_DIR = str(INPUT_PARENT_DIR / INPUT_DIR_NAME)
+        logger.debug(f"INPUT_DIR: '{INPUT_DIR}'")
 
         #  sample_name を定義
         sample_win_resolve = Path(INPUT_DIR).resolve()
         sample_name = str(sample_win_resolve.parent.name) + "-" + str(sample_win_resolve.name)
+        logger.debug(f"sample_name: '{sample_name}'")
 
+        logger.info("set save path")
         #  highlighted と thresh_img の保存パスを設定
         highlight_path = Path(ISOLINE_DIR) / f"{ISOLINE_FILE_NAME}__{sample_name}{image_ext}"
-        thresh_path = Path(ISOLINE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
         utils.check_exist_mkdir(highlight_path)
-        utils.check_exist_mkdir(thresh_path)
+        logger.debug(f"highlight_path: '{highlight_path}'")
 
+        thresh_path = Path(ISOLINE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
+        utils.check_exist_mkdir(thresh_path)
+        logger.debug(f"thresh_path: '{thresh_path}'")
+
+        logger.info("--- calculate sigma image ---")
+        logger.info("loading sample images and compute circle stats")
         #  INPUT_DIR 内の 全画像 と その座標リストを取得
         frames, stats = utils.extract_sun_min2(INPUT_DIR, h_size=CROP_H, w_size=CROP_W)
         mean_r = stats[:, 2].mean()
 
-        if DEBUGMODE:
-            logger.debug(f"frames size:{frames.size}")
-
+        logger.info("compute mean,std")
         #  平均値, 標準偏差 を取得 (偏差値は棄てる)
         mean, std, _ = utils.calculate_hensachi(frames)  # mean,std共にnp.float64だが、範囲はint16bit
 
+        logger.debug(f"sigma image size: {std.size}")
+
+        logger.info("--- highlight based on sigma image ---")
+        logger.info("calculate contours")
         # thresh_uint8 を作製
         _, thresh = cv2.threshold(std, sigma_threshold, 255, cv2.THRESH_BINARY)
         thresh_uint8 = thresh.astype(np.uint8)
 
         # contours を取得
         contours, _ = cv2.findContours(thresh_uint8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        logger.debug(f"num of contours  : {len(contours)}")
 
+        logger.info(f"bounding and inspecting contours (bboxstat = (x,y,w,h,area))")
         if BOUND:
             un_compatible_Fcnt = []
             highlights_Fcnt = []
@@ -157,19 +176,17 @@ if __name__ == "__main__":
 
                 x, y, w, h = cv2.boundingRect(cnt)
                 area = cv2.contourArea(cnt)
-                logger.debug(
-                    f"検出された bbox{str(i).zfill(len(str(len(contours))))} (x,y,w,h,area):{x, y, w, h, area} "
-                )
+                logger.debug(f"検出された bbox ({str(i).zfill(len(str(len(contours))))}) :{x, y, w, h, area} ")
 
                 pts = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=np.int32)
                 pts = pts.reshape((-1, 1, 2))
 
                 if area < min_area:
                     compatible = False
-                    logger.debug(f"ノイズとして除外しました bbox:{x, y, w, h}")
-                elif np.max([w, h]) >= mean_r:
+                    logger.debug(f" ノイズとして除外しました {area} < {min_area} (min_area)")
+                elif np.max([w, h]) >= mean_r * diame_ratio * 2:
                     compatible = False
-                    logger.debug(f"縁として除外しました bbox:{x, y, w, h}")
+                    logger.debug(f" 縁として除外しました {np.max([w, h])} (長辺) > {mean_r * diame_ratio * 2}")
 
                 if compatible:
                     highlights_Fcnt.append(pts)
@@ -178,12 +195,16 @@ if __name__ == "__main__":
         else:
             highlights_Fcnt = contours
 
+        logger.debug(f"Number of defective items : {len(un_compatible_Fcnt)} / {len(contours)}")
+
+        logger.info("--- draw highlights on the image. ---")
+        logger.info("normalize image")
+
         norm_img = utils.scale_to_uint8(mean, float_range=(0.0, 2.0**16))
 
         if norm_img.ndim == 2 or norm_img.shape[2] == 1:
             background_img = cv2.cvtColor(norm_img, cv2.COLOR_GRAY2BGR)
-            if DEBUGMODE:
-                logger.debug(" background_img is not color,Expand the channel to three.")
+            logger.debug(" background_img is not color,Expand the channel to three.")
         else:
             background_img = norm_img
 
