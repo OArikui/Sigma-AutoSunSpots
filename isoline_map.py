@@ -80,7 +80,9 @@ if __name__ == "__main__":
     image_ext = ".png"
 
     sigma_threshold = 600  # int16bit 想定
-    min_area = 0
+
+    min_area = 0  # 指定した面積（ピクセル数）未満のノイズを除外する閾値 (0~)
+    diame_ratio = 0.5  # 縁と判断される bbox の 長辺 の 太陽直径 に対する 最小 の 割合 (0.0~1.0)
 
     line_color_BGR = (0, 255, 0)
     line_thickness = 1
@@ -108,6 +110,12 @@ if __name__ == "__main__":
     logger.info("処理を開始しました")
     logger.info("ロガー経由のメッセージです")
 
+    # param_valid
+    if min_area < 0:
+        raise ValueError("param.min_area should be 0 or greater.")
+    if diame_ratio < 0 or diame_ratio > 1.0:
+        raise ValueError("param.diameter ratio should fall between 0 and 1. ")
+
     for i, INPUT_DIR_NAME in enumerate(INPUT_DIR_NAMES):
         logger.info(f"=== SunSpots highlight process ({i + 1} / {len(INPUT_DIR_NAMES)}) ===")
         logger.info(f" current = {INPUT_DIR_NAME}")
@@ -125,9 +133,8 @@ if __name__ == "__main__":
         utils.check_exist_mkdir(thresh_path)
 
         #  INPUT_DIR 内の 全画像 と その座標リストを取得
-        frames, centers = utils.extract_sun_min2(
-            INPUT_DIR, h_size=CROP_H, w_size=CROP_W
-        )  # frames: NDArray[NDArray[np.uint16]]
+        frames, stats = utils.extract_sun_min2(INPUT_DIR, h_size=CROP_H, w_size=CROP_W)
+        mean_r = stats[:, 2].mean()
 
         if DEBUGMODE:
             logger.debug(f"frames size:{frames.size}")
@@ -142,15 +149,32 @@ if __name__ == "__main__":
         # contours を取得
         contours, _ = cv2.findContours(thresh_uint8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        # bound boxes を取得
-        bboxes = get_contour_bboxes(contours)
-
         if BOUND:
+            un_compatible_Fcnt = []
             highlights_Fcnt = []
-            for x, y, w, h in bboxes:
+            for i, cnt in enumerate(contours):
+                compatible = True
+
+                x, y, w, h = cv2.boundingRect(cnt)
+                area = cv2.contourArea(cnt)
+                logger.debug(
+                    f"検出された bbox{str(i).zfill(len(str(len(contours))))} (x,y,w,h,area):{x, y, w, h, area} "
+                )
+
                 pts = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=np.int32)
                 pts = pts.reshape((-1, 1, 2))
-                highlights_Fcnt.append(pts)
+
+                if area < min_area:
+                    compatible = False
+                    logger.debug(f"ノイズとして除外しました bbox:{x, y, w, h}")
+                elif np.max([w, h]) >= mean_r:
+                    compatible = False
+                    logger.debug(f"縁として除外しました bbox:{x, y, w, h}")
+
+                if compatible:
+                    highlights_Fcnt.append(pts)
+                else:
+                    un_compatible_Fcnt.append(pts)
         else:
             highlights_Fcnt = contours
 
