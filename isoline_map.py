@@ -10,42 +10,6 @@ import utils
 import logging
 from datetime import datetime
 
-ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-# ログ設定（INFO以上のログを app.log ファイルに記録）
-
-
-# ロガーの作成（__name__ を指定することで実行中のモジュール名がログに入る）
-import logging
-from datetime import datetime
-
-# タイムスタンプの作成（例）
-ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-# 1. ロガーの作成
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # ロガー全体で受け入れる最小ログレベル
-
-# 2. フォーマットの定義
-formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-
-# 3. ファイル出力用ハンドラの設定
-file_handler = logging.FileHandler(f"save/logs/{ts}.log", mode="a", encoding="utf-8")
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(formatter)
-
-# 4. コンソール出力用ハンドラの設定
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(formatter)
-
-# 5. ハンドラをロガーに追加
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
-
-# 6. 設定完了後にログを出力する
-logger.info("処理を開始しました")
-logger.info("ロガー経由のメッセージです")
-
 
 def get_contour_bboxes(
     contours: list[NDArray[np.int32]], min_area: int = 0, debug: bool = False
@@ -91,116 +55,9 @@ def get_contour_bboxes(
             bboxes.append((x, y, w, h))
         else:
             if debug:
-                logger.debug(
-                    f" Bounding ({i}) は {area} < min_area({min_area}) により無視されます。"
-                )
+                logger.debug(f" Bounding ({i}) は {area} < min_area({min_area}) により無視されます。")
 
     return bboxes
-
-
-def isoline(
-    sigma_img: NDArray[np.float64],
-    raw_image: NDArray[np.uint16 | np.uint8],
-    levels: list[float],
-    highlight_bound: bool = False,
-    line_color: tuple[int, int, int] | None = None,  # RGB,default=(0,255,0)
-    line_thickness: int = 1,
-    debug_show: bool = False,
-) -> NDArray[np.uint8]:
-    """
-    Description:
-        sigma_img上の特定の値の等値線をraw_imageに描画します
-    Arg:
-        sigma_img (np.ndarray):1チャンネル。raw_imageと同じ画像sizeで。
-        raw_img (np.ndarray):sigma_imgと同じ画像sizeで。
-        levels (list[float]):描画する等値線の値。複数可
-        line_color (tuple[int]):等値線の色 RGB
-        line_thickness (float):等値線の太さ
-    Return:
-        result_img (np,ndarray,RGB):raw_image上にsigma_imgにおけるlevelsの等値線を描画したもの
-    Raise:
-        ValueError:sigma_img.shape[:2] != raw_image.shape[:2]
-        ValueError:sigma_img.ndim != 2
-    """
-    if debug_show:
-        logger.debug(" starting isoline_map.isoline as DEBUGMODE")
-
-    if line_color is None:
-        line_color = (0, 255, 0)
-        if debug_show:
-            logger.debug(
-                f"line_color is not instructed. Useing deafaul = {line_color}(RGB)"
-            )
-
-    R, G, B = line_color
-    line_color_BGR = B, G, R
-
-    if sigma_img.shape[:2] != raw_image.shape[:2]:
-        raise ValueError(
-            f"sigma_img と raw_image の画像サイズが一致しません\n"
-            f"sigma:{sigma_img.shape}\nraw  :{raw_image.shape}"
-        )
-
-    if sigma_img.ndim != 2:
-        raise ValueError(f"sigma_img ndim not good:{sigma_img.ndim} ,is it color?")
-
-    # 1. 0-255の8bitに正規化
-    norm_img = cv2.normalize(raw_image, None, 0, 255, cv2.NORM_MINMAX)
-    norm_img = norm_img.astype(np.uint8)
-
-    # 2. グレースケール(1ch)の場合は3ch(BGR)に変換してカラー描画を可能にする
-    if norm_img.ndim == 2 or norm_img.shape[2] == 1:
-        result_img = cv2.cvtColor(norm_img, cv2.COLOR_GRAY2BGR)
-        if debug_show:
-            logger.debug(" raw_img is not color,Expand the channel to three.")
-    else:
-        result_img = norm_img.copy()
-
-    for level in levels:
-        # 閾値処理で二値化
-        _, thresh = cv2.threshold(sigma_img, level, 255, cv2.THRESH_BINARY)
-        thresh_uint8 = thresh.astype(np.uint8)
-
-        if debug_show:
-            cv2.imshow("isoline-threshold", thresh_uint8)
-            cv2.waitKey(0)  # キー入力待ち
-            cv2.destroyAllWindows()
-
-        contours, _ = cv2.findContours(
-            thresh_uint8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-        )
-
-        if highlight_bound:
-            bboxes = get_contour_bboxes(contours, debug=debug_show)
-            for x, y, w, h in bboxes:
-                if line_thickness == -1:  # 塗りつぶし矩形
-                    cv2.rectangle(
-                        result_img,
-                        (x, y),
-                        (x + w, y + h),
-                        line_color_BGR,
-                        thickness=cv2.FILLED,
-                    )
-                else:
-                    cv2.rectangle(
-                        result_img,
-                        (x, y),
-                        (x + w, y + h),
-                        line_color_BGR,
-                        thickness=line_thickness,
-                        lineType=cv2.LINE_AA,
-                    )
-        else:
-            result_img = cv2.drawContours(
-                result_img, contours, -1, line_color_BGR, line_thickness
-            )
-
-        if debug_show:
-            cv2.imshow("isoline-isoline map", result_img)
-            cv2.waitKey(0)  # キー入力待ち
-            cv2.destroyAllWindows()
-
-    return result_img, thresh_uint8
 
 
 if __name__ == "__main__":
@@ -223,55 +80,98 @@ if __name__ == "__main__":
 
     image_ext = ".png"
 
+    sigma_threshold = 600  # int16bit 想定
+    min_area = 0
+
+    line_color_BGR = (0, 255, 0)
+    line_thickness = 1
+
     BOUND = True
     DEBUGMODE = True
 
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+
+    file_handler = logging.FileHandler(f"save/logs/{ts}.log", mode="a", encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    logger.info("処理を開始しました")
+    logger.info("ロガー経由のメッセージです")
+
     for i, INPUT_DIR_NAME in enumerate(INPUT_DIR_NAMES):
-        logger.info(
-            f"=== SunSpots highlight process ({i + 1} / {len(INPUT_DIR_NAMES)}) ==="
-        )
+        logger.info(f"=== SunSpots highlight process ({i + 1} / {len(INPUT_DIR_NAMES)}) ===")
         logger.info(f" current = {INPUT_DIR_NAME}")
 
         INPUT_DIR = str(INPUT_PARENT_DIR / INPUT_DIR_NAME)
+
+        #  sample_name を定義
         sample_win_resolve = Path(INPUT_DIR).resolve()
-        sample_name = (
-            str(sample_win_resolve.parent.name) + "-" + str(sample_win_resolve.name)
-        )
+        sample_name = str(sample_win_resolve.parent.name) + "-" + str(sample_win_resolve.name)
+
+        #  highlighted と thresh_img の保存パスを設定
+        highlight_path = Path(ISOLINE_DIR) / f"{ISOLINE_FILE_NAME}__{sample_name}{image_ext}"
+        thresh_path = Path(ISOLINE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
+        utils.check_exist_mkdir(highlight_path)
+        utils.check_exist_mkdir(thresh_path)
+
+        #  INPUT_DIR 内の 全画像 と その座標リストを取得
         frames, centers = utils.extract_sun_min2(
             INPUT_DIR, h_size=CROP_H, w_size=CROP_W
-        )
-        # frames: NDArray[NDArray[np.uint16]]
-        # centers: NDArray[list[int]]
-
-        logger.debug(f"frames:{frames.size}") if DEBUGMODE else None
-        mean, std, _ = utils.calculate_hensachi(frames)
-        # mean: NDArray[np.float64] Range = int16
-        # std: NDArray[np.float64] Range =  int16 (理論maxは (2^16)/2くらい)
-
-        highlighted, thresh_uint8 = isoline(
-            std, mean, levels=[600], debug_show=DEBUGMODE, highlight_bound=BOUND
-        )
-        # highlighted: NDArray[uint8] channel=3
-        filename = Path(ISOLINE_DIR) / f"{ISOLINE_FILE_NAME}__{sample_name}{image_ext}"
-        utils.check_exist_mkdir(filename)
-
-        thresh_name = (
-            Path(ISOLINE_DIR) / f"{SIGMA_THRESH_FILE_NAME}__{sample_name}{image_ext}"
-        )
-        utils.check_exist_mkdir(thresh_name)
+        )  # frames: NDArray[NDArray[np.uint16]]
 
         if DEBUGMODE:
-            logger.debug(f"figure save path{filename.resolve()}")
-            logger.debug(f"figure image type:{highlighted.dtype}")
-            logger.debug(f"  max:{np.max(highlighted)}")
-            logger.debug(f"  min:{np.min(highlighted)}")
+            logger.debug(f"frames size:{frames.size}")
 
-        if cv2.imwrite(filename.resolve(), highlighted):
+        #  平均値, 標準偏差 を取得 (偏差値は棄てる)
+        mean, std, _ = utils.calculate_hensachi(frames)  # mean,std共にnp.float64だが、範囲はint16bit
+
+        # thresh_uint8 を作製
+        _, thresh = cv2.threshold(std, sigma_threshold, 255, cv2.THRESH_BINARY)
+        thresh_uint8 = thresh.astype(np.uint8)
+
+        # contours を取得
+        contours, _ = cv2.findContours(thresh_uint8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # bound boxes を取得
+        bboxes = get_contour_bboxes(contours)
+
+        if BOUND:
+            highlights_Fcnt = []
+            for x, y, w, h in bboxes:
+                pts = np.array([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], dtype=np.int32)
+                pts = pts.reshape((-1, 1, 2))
+                highlights_Fcnt.append(pts)
+        else:
+            highlights_Fcnt = contours
+
+        norm_img = utils.scale_to_uint8(mean, float_range=(0.0, 2.0**16))
+
+        if norm_img.ndim == 2 or norm_img.shape[2] == 1:
+            background_img = cv2.cvtColor(norm_img, cv2.COLOR_GRAY2BGR)
+            if DEBUGMODE:
+                logger.debug(" background_img is not color,Expand the channel to three.")
+        else:
+            background_img = norm_img
+
+        highlighted = cv2.drawContours(background_img, highlights_Fcnt, -1, line_color_BGR, line_thickness)
+
+        if cv2.imwrite(highlight_path.resolve(), highlighted):
             logger.info("save highlighted image sucessful")
         else:
             logger.warning("highlighted image imwrite failed")
 
-        if cv2.imwrite(thresh_name.resolve(), thresh_uint8):
+        if cv2.imwrite(thresh_path.resolve(), thresh_uint8):
             logger.info("save thresh_uint8 image sucessful")
         else:
             logger.warning("thresh_uint8 imwrite failed")

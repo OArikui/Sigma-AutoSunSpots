@@ -11,7 +11,7 @@ pythonVersion = "3.13"
 
 [tool.ruff]
 target-version = "py313"
-line-length = 88
+line-length = 112
 
 [tool.ruff.lint]
 
