@@ -58,6 +58,8 @@ def get_contour_bboxes(
                 )
 
     return bboxes
+
+
 def isoline(
     sigma_img: NDArray[np.float64],
     raw_image: NDArray[np.uint16 | np.uint8],
@@ -81,9 +83,15 @@ def isoline(
         ValueError:sigma_img.shape[:2] != raw_image.shape[:2]
         ValueError:sigma_img.ndim != 2
     """
+    if debug_show:
+        print("[debug] starting isoline_map.isoline as DEBUGMODE")
 
     if line_color is None:
         line_color = (0, 255, 0)
+        if debug_show:
+            print(
+                f"[debug] line_color is not instructed. Useing deafaul = {line_color}(RGB)"
+            )
 
     R, G, B = line_color
     line_color_BGR = B, G, R
@@ -104,6 +112,8 @@ def isoline(
     # 2. グレースケール(1ch)の場合は3ch(BGR)に変換してカラー描画を可能にする
     if norm_img.ndim == 2 or norm_img.shape[2] == 1:
         result_img = cv2.cvtColor(norm_img, cv2.COLOR_GRAY2BGR)
+        if debug_show:
+            print("[debug] raw_img is not color,Expand the channel to three.")
     else:
         result_img = norm_img.copy()
 
