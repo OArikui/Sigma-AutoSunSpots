@@ -133,7 +133,7 @@ def isoline(
         )
 
         if highlight_bound:
-            bboxes = get_contour_bboxes(countors, debug=debug_show)
+            bboxes = get_contour_bboxes(contours, debug=debug_show)
             for x, y, w, h in bboxes:
                 if line_thickness == -1:  # 塗りつぶし矩形
                     cv2.rectangle(
@@ -153,10 +153,8 @@ def isoline(
                         lineType=cv2.LINE_AA,
                     )
         else:
-            highlight = countors
-
             result_img = cv2.drawContours(
-                result_img, highlight, -1, line_color_BGR, line_thickness
+                result_img, contours, -1, line_color_BGR, line_thickness
             )
 
         if debug_show:
