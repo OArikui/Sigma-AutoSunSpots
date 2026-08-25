@@ -227,6 +227,40 @@ def scale_to_uint8(
     else:
         return norm_img
 
+
+def drawContours_alpha(
+    image: np.ndarray, contours: np.ndarray, line_color_BGRA: tuple[int, int, int, float], line_thickness: int
+) -> NDArray[np.uint8]:
+    getted_param = {"line_color_BGR":line_color_BGR,"line_thickness":line_thickness}
+    logger.debug(f"utils.drawContours_alpha param : {getted_param}")
+
+    image_max = np.max(image)
+    logger.info(f"image_rangeを判定 (image_max = {image_max})")
+    if image_max > 4096:
+        float_range = (0.0, 2.0**16)
+        logger.debug("the image is int16bit range")
+    elif image_max > 256:
+        float_range = (0.0, 2.0**12)
+        logger.debug("the image is int12bit range")
+    else:
+        float_range = (0.0, 2.0**8)
+        logger.debug("the image is int8bit range")
+
+    norm_BGR = scale_to_uint8(image, float_range)
+
+    overlay = norm_BGR.copy()
+
+    line_color_BGR = line_color_BGRA[:3]
+    alpha = line_color_BGRA[-1]
+    if alpha > 1.0 or alpha < 0.0:
+        logger.waring("reset alpha to 0.5, alpha should fall between 0 and 1.")
+    cv2.drawContours(overlay, contours, -1, line_color_BGR, thickness=line_thickness)
+
+    output = cv2.addWeighted(overlay, alpha, norm_BGR, 1 - alpha, 0)
+
+    return output
+
+
 if __name__ == "__main__":
     print(f"\n--- 画像ファイルの読み込み開始: {INPUT_DIR} ---")
 
