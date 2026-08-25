@@ -59,6 +59,39 @@ def get_contour_bboxes(
     return bboxes
 
 
+def drawContours_alpha(
+    image: np.ndarray, contours: np.ndarray, lineC_BGRA: tuple[int, int, int, float], line_thickness: int = 1
+) -> NDArray[np.uint8]:
+    getted_param = {"line_color_BGR": lineC_BGRA, "line_thickness": line_thickness}
+    logger.debug(f"getted_param : {getted_param}")
+
+    image_max = np.max(image)
+    logger.info(f"image_rangeを判定 (image_max = {image_max})")
+    if image_max > 4096:
+        float_range = (0.0, 2.0**16)
+        logger.debug("the image is int16bit range")
+    elif image_max > 256:
+        float_range = (0.0, 2.0**12)
+        logger.debug("the image is int12bit range")
+    else:
+        float_range = (0.0, 2.0**8)
+        logger.debug("the image is int8bit range")
+
+    norm_BGR = utils.scale_to_uint8(image, float_range=float_range)
+
+    overlay = norm_BGR.copy()
+
+    lineC_BGR = lineC_BGRA[:3]
+    alpha = lineC_BGRA[-1]
+    if alpha > 1.0 or alpha < 0.0:
+        logger.waring("reset alpha to 0.5, alpha should fall between 0 and 1.")
+    cv2.drawContours(overlay, contours, -1, lineC_BGR, thickness=line_thickness)
+
+    output = cv2.addWeighted(overlay, alpha, norm_BGR, 1 - alpha, 0)
+
+    return output
+
+
 if __name__ == "__main__":
     CROP_H = 600
     CROP_W = 600
@@ -69,7 +102,7 @@ if __name__ == "__main__":
     diame_ratio = 0.5  # 縁と判断される bbox の 長辺 の 太陽直径 に対する 最小 の 割合 (0.0~1.0)
 
     lineC_BGR = (0, 255, 0)
-    un_compat_lineC_BGRA = (0,0,255,0.3)
+    un_compat_lineC_BGRA = (10, 10, 255, 0.3)
     line_thickness = 1  # 画像は16bitで読み込みます
 
     INPUT_PARENT_DIR = Path(r"E:/projects/Sigma_AutoSunSpots/samples/")
@@ -90,7 +123,8 @@ if __name__ == "__main__":
     formatter = logging.Formatter(
         "%(asctime)s [%(module)s.%(funcName)s:%(lineno)d]   [%(levelname)s] %(message)s"
     )
-    log_path = Path(SAVE_DIR) / "{ts}.log"
+    log_path = Path(SAVE_DIR) / f"{ts}.log"
+    utils.check_exist_mkdir(log_path)
 
     file_handler = logging.FileHandler(f"{log_path.resolve()}", mode="a", encoding="utf-8")
     file_handler.setLevel(logging.DEBUG)
@@ -201,9 +235,9 @@ if __name__ == "__main__":
 
         background_img = utils.scale_to_uint8(mean, float_range=(0.0, 2.0**16), color_channel=True)
 
-        bounded_img = cv2.drawContours(background_img, bound_Fcnt, -1, lineC_BGR, line_thickness)
+        bounded_img = cv2.drawContours(background_img.copy(), bound_Fcnt, -1, lineC_BGR, line_thickness)
 
-        withDisb_img=utils.drawContours_alpha(bounded_img,un_compat_Fcnt,un_compat_lineC_BGRA,line_thickness)
+        withDisb_img = drawContours_alpha(bounded_img, un_compat_Fcnt, un_compat_lineC_BGRA, line_thickness)
 
         isoline_img = cv2.drawContours(background_img, contours, -1, lineC_BGR, line_thickness)
 

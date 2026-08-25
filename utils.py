@@ -101,7 +101,7 @@ def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[n
             - 各画像の太陽近似円stat（(x,y),r）
     """
     getted_param = {"h_size": h_size, "w_size": w_size, "dirpath": dir_path}
-    logger.debug(f"extract_sun_min2 param {getted_param}")
+    logger.debug(f"getted param : {getted_param}")
 
     if dir_path.endswith(".zip"):
         zip_operate: bool = True
@@ -181,6 +181,12 @@ def scale_to_uint8(
     color_channel: bool = False,
 ) -> NDArray[np.uint8]:
     """画像のdtypeに応じて0-255のuint8型にスケーリングする関数"""
+    getted_param = {
+        "min_max_normalization": min_max_normalization,
+        "float_range": float_range,
+        "color_channel": color_channel,
+    }
+    logger.debug(f"getted_param : {getted_param}")
     if img.dtype == np.uint8:
         norm_img = img
 
@@ -212,7 +218,7 @@ def scale_to_uint8(
         norm_img = (img / 256).astype(np.uint8)
 
     else:
-        raise ValueError("unknown unit")
+        logger.error(f"unknown dtype: {img.dtype},Scaling is not performed.")
 
     if color_channel:
         logger.info("expand the channel to three,by option 'color_channel'")
@@ -226,39 +232,6 @@ def scale_to_uint8(
         return expanded
     else:
         return norm_img
-
-
-def drawContours_alpha(
-    image: np.ndarray, contours: np.ndarray, lineC_BGRA: tuple[int, int, int, float], line_thickness: int = 1
-) -> NDArray[np.uint8]:
-    getted_param = {"line_color_BGR":lineC_BGR,"line_thickness":line_thickness}
-    logger.debug(f"utils.drawContours_alpha param : {getted_param}")
-
-    image_max = np.max(image)
-    logger.info(f"image_rangeを判定 (image_max = {image_max})")
-    if image_max > 4096:
-        float_range = (0.0, 2.0**16)
-        logger.debug("the image is int16bit range")
-    elif image_max > 256:
-        float_range = (0.0, 2.0**12)
-        logger.debug("the image is int12bit range")
-    else:
-        float_range = (0.0, 2.0**8)
-        logger.debug("the image is int8bit range")
-
-    norm_BGR = scale_to_uint8(image, float_range)
-
-    overlay = norm_BGR.copy()
-
-    lineC_BGR = lineC_BGRA[:3]
-    alpha = lineC_BGRA[-1]
-    if alpha > 1.0 or alpha < 0.0:
-        logger.waring("reset alpha to 0.5, alpha should fall between 0 and 1.")
-    cv2.drawContours(overlay, contours, -1, lineC_BGR, thickness = line_thickness)
-
-    output = cv2.addWeighted(overlay, alpha, norm_BGR, 1 - alpha, 0)
-
-    return output
 
 
 if __name__ == "__main__":
