@@ -229,9 +229,9 @@ def scale_to_uint8(
 
 
 def drawContours_alpha(
-    image: np.ndarray, contours: np.ndarray, line_color_BGRA: tuple[int, int, int, float], line_thickness: int
+    image: np.ndarray, contours: np.ndarray, lineC_BGRA: tuple[int, int, int, float], line_thickness: int = 1
 ) -> NDArray[np.uint8]:
-    getted_param = {"line_color_BGR":line_color_BGR,"line_thickness":line_thickness}
+    getted_param = {"line_color_BGR":lineC_BGR,"line_thickness":line_thickness}
     logger.debug(f"utils.drawContours_alpha param : {getted_param}")
 
     image_max = np.max(image)
@@ -250,11 +250,11 @@ def drawContours_alpha(
 
     overlay = norm_BGR.copy()
 
-    line_color_BGR = line_color_BGRA[:3]
-    alpha = line_color_BGRA[-1]
+    lineC_BGR = lineC_BGRA[:3]
+    alpha = lineC_BGRA[-1]
     if alpha > 1.0 or alpha < 0.0:
         logger.waring("reset alpha to 0.5, alpha should fall between 0 and 1.")
-    cv2.drawContours(overlay, contours, -1, line_color_BGR, thickness=line_thickness)
+    cv2.drawContours(overlay, contours, -1, lineC_BGR, thickness = line_thickness)
 
     output = cv2.addWeighted(overlay, alpha, norm_BGR, 1 - alpha, 0)
 

@@ -68,7 +68,7 @@ if __name__ == "__main__":
     min_area = 0.0  # 指定した面積（ピクセル数）未満のノイズを除外する閾値 (0.0~)
     diame_ratio = 0.5  # 縁と判断される bbox の 長辺 の 太陽直径 に対する 最小 の 割合 (0.0~1.0)
 
-    line_color_BGR = (0, 255, 0)
+    lineC_BGR = (0, 255, 0)
     line_thickness = 1  # 画像は16bitで読み込みます
 
     INPUT_PARENT_DIR = Path(r"E:/projects/Sigma_AutoSunSpots/samples/")
@@ -118,8 +118,8 @@ if __name__ == "__main__":
         logger.info(f"=== SunSpots highlight process ({i + 1} / {len(INPUT_DIR_NAMES)}) ===")
         logger.info(f" current = {INPUT_DIR_NAME}")
 
-        logger.info(f"--- setting path ---")
-        logger.info(f"set sample path")
+        logger.info("--- setting path ---")
+        logger.info("set sample path")
         INPUT_DIR = str(INPUT_PARENT_DIR / INPUT_DIR_NAME)
         logger.debug(f"INPUT_DIR: '{INPUT_DIR}'")
 
@@ -163,9 +163,9 @@ if __name__ == "__main__":
         contours, _ = cv2.findContours(thresh_uint8, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         logger.debug(f"num of contours  : {len(contours)}")
 
-        logger.info(f"bounding and inspecting contours (bboxstat = (x,y,w,h,area))")
+        logger.info("bounding and inspecting contours (bboxstat = (x,y,w,h,area))")
 
-        un_compatible_Fcnt = []
+        un_compat_Fcnt = []
         bound_Fcnt = []
         for i, cnt in enumerate(contours):
             compatible = True
@@ -187,18 +187,18 @@ if __name__ == "__main__":
             if compatible:
                 bound_Fcnt.append(pts)
             else:
-                un_compatible_Fcnt.append(pts)
+                un_compat_Fcnt.append(pts)
 
-        logger.debug(f"Number of defective items : {len(un_compatible_Fcnt)} / {len(contours)}")
+        logger.debug(f"Number of defective items : {len(un_compat_Fcnt)} / {len(contours)}")
 
         logger.info("--- draw highlights on the image. ---")
         logger.info("normalize image")
 
         background_img = utils.scale_to_uint8(mean, float_range=(0.0, 2.0**16), color_channel=True)
 
-        bounded_img = cv2.drawContours(background_img, bound_Fcnt, -1, line_color_BGR, line_thickness)
+        bounded_img = cv2.drawContours(background_img, bound_Fcnt, -1, lineC_BGR, line_thickness)
 
-        isoline_img = cv2.drawContours(background_img, contours, -1, line_color_BGR, line_thickness)
+        isoline_img = cv2.drawContours(background_img, contours, -1, lineC_BGR, line_thickness)
 
         if cv2.imwrite(bounded_path.resolve(), bounded_img):
             logger.info("save bounded_img image sucessful")
