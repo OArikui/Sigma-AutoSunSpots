@@ -178,20 +178,21 @@ def scale_to_uint8(
     img: np.ndarray,
     min_max_normalization: bool = False,
     float_range: tuple[float, float] = (0.0, 1.0),
+    color_channel: bool = False,
 ) -> NDArray[np.uint8]:
     """画像のdtypeに応じて0-255のuint8型にスケーリングする関数"""
     if img.dtype == np.uint8:
-        return img
+        norm_img = img
 
     if min_max_normalization:
         img_min = img.min()
         img_max = img.max()
         if img_max == img_min:
-            return np.zeros_like(img, dtype=np.uint8)
+            norm_img = np.zeros_like(img, dtype=np.uint8)
 
         # 0.0 ~ 1.0 に正規化してから 255 倍
         normalized = (img - img_min) / (img_max - img_min)
-        return (normalized * 255).astype(np.uint8)
+        norm_img = (normalized * 255).astype(np.uint8)
 
         # float
     elif np.issubdtype(img.dtype, np.floating):
@@ -204,15 +205,27 @@ def scale_to_uint8(
             )
         loofed_img = img * (255 / loof)
         cliped_img = loofed_img - floor
-        return cliped_img.astype(np.uint8)
+        norm_img = cliped_img.astype(np.uint8)
 
         # uint16型
     elif img.dtype == np.uint16:
-        return (img / 256).astype(np.uint8)
+        norm_img = (img / 256).astype(np.uint8)
 
     else:
         raise ValueError("unknown unit")
 
+    if color_channel:
+        logger.info("expand the channel to three,by option 'color_channel'")
+        if norm_img.ndim == 2 or norm_img.shape[2] == 1:
+            expanded = cv2.cvtColor(norm_img, cv2.COLOR_GRAY2BGR)
+            logger.debug(" the image is not color,Expand the channel to three.")
+        else:
+            expanded = norm_img
+            logger.debug(" the image has already expanded the channel to three")
+
+        return expanded
+    else:
+        return norm_img
 
 if __name__ == "__main__":
     print(f"\n--- 画像ファイルの読み込み開始: {INPUT_DIR} ---")

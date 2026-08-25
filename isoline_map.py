@@ -194,13 +194,7 @@ if __name__ == "__main__":
         logger.info("--- draw highlights on the image. ---")
         logger.info("normalize image")
 
-        norm_img = utils.scale_to_uint8(mean, float_range=(0.0, 2.0**16))
-
-        if norm_img.ndim == 2 or norm_img.shape[2] == 1:
-            background_img = cv2.cvtColor(norm_img, cv2.COLOR_GRAY2BGR)
-            logger.debug(" background_img is not color,Expand the channel to three.")
-        else:
-            background_img = norm_img
+        background_img = utils.scale_to_uint8(mean, float_range=(0.0, 2.0**16), color_channel=True)
 
         bounded_img = cv2.drawContours(background_img, bound_Fcnt, -1, line_color_BGR, line_thickness)
 
