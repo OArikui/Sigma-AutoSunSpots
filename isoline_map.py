@@ -69,6 +69,7 @@ if __name__ == "__main__":
     diame_ratio = 0.5  # 縁と判断される bbox の 長辺 の 太陽直径 に対する 最小 の 割合 (0.0~1.0)
 
     lineC_BGR = (0, 255, 0)
+    un_compat_lineC_BGRA = (0,0,255,0.3)
     line_thickness = 1  # 画像は16bitで読み込みます
 
     INPUT_PARENT_DIR = Path(r"E:/projects/Sigma_AutoSunSpots/samples/")
@@ -137,6 +138,10 @@ if __name__ == "__main__":
         utils.check_exist_mkdir(bounded_path)
         logger.debug(f"bounded_path: '{bounded_path}'")
 
+        with_disb_path = Path(SAVE_DIR) / f"with_disb__{sample_name}{image_ext}"
+        utils.check_exist_mkdir(with_disb_path)
+        logger.debug(f"with_disb_path: '{with_disb_path}'")
+
         thresh_path = Path(SAVE_DIR) / f"thresh_uint8__{sample_name}{image_ext}"
         utils.check_exist_mkdir(thresh_path)
         logger.debug(f"thresh_path: '{thresh_path}'")
@@ -198,12 +203,19 @@ if __name__ == "__main__":
 
         bounded_img = cv2.drawContours(background_img, bound_Fcnt, -1, lineC_BGR, line_thickness)
 
+        withDisb_img=utils.drawContours_alpha(bounded_img,un_compat_Fcnt,un_compat_lineC_BGRA,line_thickness)
+
         isoline_img = cv2.drawContours(background_img, contours, -1, lineC_BGR, line_thickness)
 
         if cv2.imwrite(bounded_path.resolve(), bounded_img):
             logger.info("save bounded_img image sucessful")
         else:
             logger.warning("bounded_img image imwrite failed")
+
+        if cv2.imwrite(with_disb_path.resolve(), withDisb_img):
+            logger.info("save with_disb image sucessful")
+        else:
+            logger.warning("with_disb image imwrite failed")
 
         if cv2.imwrite(isoline_path.resolve(), isoline_img):
             logger.info("save isoline_img image sucessful")
