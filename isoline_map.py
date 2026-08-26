@@ -141,6 +141,7 @@ if __name__ == "__main__":
 
     image_ext = ".png"
 
+    SAVE_DIR = Path(SAVE_DIR)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     logger = logging.getLogger()
@@ -148,7 +149,7 @@ if __name__ == "__main__":
     formatter = logging.Formatter(
         "%(asctime)s [%(module)s.%(funcName)s:%(lineno)d]   [%(levelname)s] %(message)s"
     )
-    log_path = Path(SAVE_DIR) / f"{ts}.log"
+    log_path = SAVE_DIR / f"{ts}.log"
     utils.check_exist_mkdir(log_path)
 
     file_handler = logging.FileHandler(f"{log_path.resolve()}", mode="a", encoding="utf-8")
@@ -175,7 +176,9 @@ if __name__ == "__main__":
         raise ValueError("param.diameter ratio should fall between 0 and 1. ")
 
     for i, INPUT_DIR_NAME in enumerate(INPUT_DIR_NAMES):
-        logger.info(f"=== SunSpots highlight process ({i + 1} / {len(INPUT_DIR_NAMES)}) ===")
+        logger.info(
+            f"====================== SunSpots highlight process ({i + 1} / {len(INPUT_DIR_NAMES)}) ========================="
+        )
         logger.info(f" current = {INPUT_DIR_NAME}")
 
         logger.info("--- setting path ---")
@@ -188,20 +191,26 @@ if __name__ == "__main__":
         sample_name = str(sample_win_resolve.parent.name) + "-" + str(sample_win_resolve.name)
         logger.debug(f"sample_name: '{sample_name}'")
 
-        logger.info("set save path")
-        isoline_path = Path(SAVE_DIR) / f"isoline__{sample_name}{image_ext}"
+        logger.info("setting save path ...")
+
+        img_suffix = f"__{sample_name}{image_ext}"
+        isoline_path = SAVE_DIR / f"isoline{img_suffix}"
         utils.check_exist_mkdir(isoline_path)
         logger.debug(f"isoline_path: '{isoline_path}'")
 
-        bounded_path = Path(SAVE_DIR) / f"bounded__{sample_name}{image_ext}"
+        bounded_path = SAVE_DIR / f"bounded{img_suffix}"
         utils.check_exist_mkdir(bounded_path)
         logger.debug(f"bounded_path: '{bounded_path}'")
 
-        with_disb_path = Path(SAVE_DIR) / f"with_disb__{sample_name}{image_ext}"
+        with_disb_path = SAVE_DIR / f"with_disb{img_suffix}"
         utils.check_exist_mkdir(with_disb_path)
         logger.debug(f"with_disb_path: '{with_disb_path}'")
 
-        thresh_path = Path(SAVE_DIR) / f"thresh_uint8__{sample_name}{image_ext}"
+        sigma_path = SAVE_DIR / f"sigma{img_suffix}"
+        utils.check_exist_mkdir(sigma_path)
+        logger.debug(f"sigma_path: '{sigma_path}'")
+
+        thresh_path = SAVE_DIR / f"thresh_uint8{img_suffix}"
         utils.check_exist_mkdir(thresh_path)
         logger.debug(f"thresh_path: '{thresh_path}'")
 
