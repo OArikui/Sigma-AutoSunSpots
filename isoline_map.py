@@ -88,19 +88,7 @@ def drawContours_alpha(
     getted_param = {"line_color_BGR": lineC_BGRA, "line_thickness": line_thickness}
     logger.debug(f"getted_param : {getted_param}")
 
-    image_max = np.max(image)
-    logger.info(f"image_rangeを判定 (image_max = {image_max})")
-    if image_max > 4096:
-        float_range = (0.0, 2.0**16)
-        logger.debug("the image is int16bit range")
-    elif image_max > 256:
-        float_range = (0.0, 2.0**12)
-        logger.debug("the image is int12bit range")
-    else:
-        float_range = (0.0, 2.0**8)
-        logger.debug("the image is int8bit range")
-
-    norm_BGR = utils.scale_to_uint8(image, float_range=float_range)
+    norm_BGR = utils.scale_to_uint8(image, float_range=None)
 
     overlay = norm_BGR.copy()
 

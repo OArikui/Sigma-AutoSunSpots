@@ -177,7 +177,7 @@ def calculate_hensachi(
 def scale_to_uint8(
     img: np.ndarray,
     min_max_normalization: bool = False,
-    float_range: tuple[float, float] = (0.0, 1.0),
+    float_range: tuple[float, float] | None = None,
     color_channel: bool = False,
 ) -> NDArray[np.uint8]:
     """画像のdtypeに応じて0-255のuint8型にスケーリングする関数"""
@@ -202,6 +202,18 @@ def scale_to_uint8(
 
         # float
     elif np.issubdtype(img.dtype, np.floating):
+        if float_range is None:
+            image_max = np.max(img)
+            logger.info(f"float_range 未設定のため、 image_range を判定します (image_max = {image_max})")
+            if image_max > 4096:
+                float_range = (0.0, 2.0**16)
+                logger.debug("the image is int16bit range")
+            elif image_max > 256:
+                float_range = (0.0, 2.0**12)
+                logger.debug("the image is int12bit range")
+            else:
+                float_range = (0.0, 2.0**8)
+                logger.debug("the image is int8bit range")
         floor, loof = float_range
         img_max = np.max(img)
         img_min = np.min(img)
