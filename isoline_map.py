@@ -6,8 +6,31 @@ from pathlib import Path
 import cv2
 import numpy as np
 from numpy.typing import NDArray
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import Button, Slider
 
 import utils
+
+
+def histogram(image: np.ndarray) -> np.ndarray:
+    dt = image.dtype.itemsize * 8
+    print("dt:", dt)
+    print("img's Max value:", np.max(image))
+    if np.max(image) > 2**12:
+        q = 1
+    else:
+        q = 16
+
+    y = []
+    for i in range(2**dt):
+        if i % q == 0:
+            y.append(0)
+
+    for i in image:
+        for p in i:
+            y[p] += 1
+
+    return np.array(y)
 
 
 def get_contour_bboxes(
@@ -105,6 +128,8 @@ if __name__ == "__main__":
     un_compat_lineC_BGRA = (10, 10, 255, 0.3)
     line_thickness = 1  # 画像は16bitで読み込みます
 
+    hist_show = True
+
     INPUT_PARENT_DIR = Path(r"E:/projects/Sigma_AutoSunSpots/samples/")
     INPUT_DIR_NAMES = [
         "2025-07-20-PL1.zip",
@@ -194,6 +219,67 @@ if __name__ == "__main__":
 
         logger.info("--- highlight based on sigma image ---")
         logger.info("calculate contours")
+
+        std_int = std.astype(np.uint16)
+        std_hist = histogram(std_int)
+
+        if hist_show:
+            fig, ax = plt.subplots()
+
+            fig.tight_layout(rect=[0, 0.18, 1, 1])
+
+            x = list(range(len(std_hist)))
+            init_bin = 50
+
+            def redraw(binn):
+                current_scale = ax.get_yscale()
+                ax.cla()  # 前の描画をクリア
+                ax.hist(
+                    x,
+                    bins=int(binn),
+                    weights=std_hist,
+                    color="purple",
+                    alpha=0.2,
+                    label=f"Histogram (bins={int(binn)})",
+                )
+                ax.plot(x, std_hist, alpha=0.4, color="blue", label="histogram")
+                ax.set_yscale(current_scale)  # 対数/線形スケールを維持
+                ax.legend(loc="upper right")
+
+            # 初回の描画
+            redraw(init_bin)
+
+            ax_slider = plt.axes([0.15, 0.08, 0.55, 0.04])
+            slider_bin = Slider(
+                ax=ax_slider,
+                label="Bins ",
+                valmin=1,
+                valmax=len(std_hist),  # 最大値はデータ長に合わせて調整可能
+                valinit=init_bin,
+                valstep=1,
+                valfmt="%d",
+            )
+
+            ax_button = plt.axes([0.78, 0.07, 0.17, 0.06])
+            btn_log = Button(ax_button, "Toggle Log")
+
+            # イベントハンドラ
+            def update_bin(val):
+                redraw(val)
+                fig.canvas.draw_idle()
+
+            def toggle_log(event):
+                if ax.get_yscale() == "log":
+                    ax.set_yscale("linear")
+                else:
+                    ax.set_yscale("log", base=10)
+                fig.canvas.draw_idle()
+
+            slider_bin.on_changed(update_bin)
+            btn_log.on_clicked(toggle_log)
+
+            plt.show()
+
         # thresh_uint8 を作製
         _, thresh = cv2.threshold(std, sigma_threshold, 255, cv2.THRESH_BINARY)
         thresh_uint8 = thresh.astype(np.uint8)
