@@ -125,7 +125,7 @@ if __name__ == "__main__":
         "2026-01-12-LT1.zip",
         "2026-01-17-PL1.zip",
     ]
-    SAVE_DIR = f".\\save\\isoline_highlight\\P{sigma_threshold}_{min_area}"
+    SAVE_DIR = f".\\save\\isoline_highlight"
 
     image_ext = ".png"
 
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     formatter = logging.Formatter(
         "%(asctime)s [%(module)s.%(funcName)s:%(lineno)d]   [%(levelname)s] %(message)s"
     )
-    log_path = SAVE_DIR / f"{ts}.log"
+    log_path = SAVE_DIR.parent / "logs" / f"{ts}.log"
     utils.check_exist_mkdir(log_path)
 
     file_handler = logging.FileHandler(f"{log_path.resolve()}", mode="a", encoding="utf-8")
