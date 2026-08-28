@@ -56,7 +56,7 @@ def save_scaled_std_tiff(filename: str, std_array: np.ndarray, scale_factor: flo
         return False
 
 
-def load_scaled_std_tiff(filename: str) -> tuple[np.ndarray, float]:
+def load_scaled_std_tiff(filename: str, uint8: bool) -> tuple[np.ndarray, float]:
     """
     スケールされた uint16 TIFF を読み込み、元の float 配列に戻す関数
     """
@@ -76,6 +76,9 @@ def load_scaled_std_tiff(filename: str) -> tuple[np.ndarray, float]:
 
         # 元の小数値(float32/float64)に復元
         restored_std = img_uint16.astype(np.float32) / scale_factor
+        if uint8:
+            restored_std /= 16
+            restored_std.astype(np.uint8)
         return restored_std, scale_factor
 
 
