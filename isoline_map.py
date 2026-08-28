@@ -11,6 +11,8 @@ from matplotlib.pyplot import Button, Slider
 
 import utils
 
+__version__ = "Sigma-AutoSunsSpots_Tmethod_V1"
+
 
 def histogram(image: np.ndarray) -> np.ndarray:
     dt = image.dtype.itemsize * 8
