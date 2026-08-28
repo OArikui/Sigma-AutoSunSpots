@@ -9,6 +9,8 @@ import numpy as np
 import tqdm
 from numpy.typing import NDArray
 
+import json
+import tifffile as tiff
 from libs.MIN2ver2 import MIN2_ignore_sunspots, version
 from samples.zip_operator import (
     get_image_names_from_dir,
@@ -26,6 +28,55 @@ CROP_W = 800  # 抽出する画像サイズ(横幅)
 DEBUG = True  # True: デバッグ情報を表示
 MEAN_STD_OUTPUT_DIR = Path(r".\save\mean_std")  # 平均値と標準偏差の出力画像の保存先フォルダ
 IMAGE_EXT = ".png"  # 画像の拡張子
+
+
+def save_scaled_std_tiff(filename: str, std_array: np.ndarray, scale_factor: float = 10.0) -> bool:
+    """
+    標準偏差配列(float)をスケール変換して uint16 TIFF として保存する関数
+    """
+    # 1. 10倍して四捨五入＆範囲制限 (0〜65535)
+    scaled_data = np.round(std_array * scale_factor)
+    clipped_data = np.clip(scaled_data, 0, 65535).astype(np.uint16)
+
+    # 2. メタデータ作成
+    metadata = {
+        "data_type": "standard_deviation",
+        "scale_factor": scale_factor,
+        "unit_per_lsb": 1.0 / scale_factor,
+        "original_dtype": str(std_array.dtype),
+    }
+
+    try:
+        # 3. TIFFタグ (ImageDescription) に埋め込んで保存
+        tiff.imwrite(filename, clipped_data, description=json.dumps(metadata, indent=2))
+        logger.debug(f"[保存完了] {filename} (shape: {clipped_data.shape}, dtype: {clipped_data.dtype})")
+        return True
+    except:
+        logger.exception(f"保存失敗")
+        return False
+
+
+def load_scaled_std_tiff(filename: str) -> tuple[np.ndarray, float]:
+    """
+    スケールされた uint16 TIFF を読み込み、元の float 配列に戻す関数
+    """
+    with tiff.TiffFile(filename) as tif:
+        # 画像読み込み
+        img_uint16 = tif.asarray()
+
+        # メタデータ読み込み
+        scale_factor = 10.0  # デフォルト値
+        page = tif.pages[0]
+        if "ImageDescription" in page.tags:
+            try:
+                meta = json.loads(page.tags["ImageDescription"].value)
+                scale_factor = float(meta.get("scale_factor", 10.0))
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        # 元の小数値(float32/float64)に復元
+        restored_std = img_uint16.astype(np.float32) / scale_factor
+        return restored_std, scale_factor
 
 
 def check_exist_mkdir(path: Path) -> None:

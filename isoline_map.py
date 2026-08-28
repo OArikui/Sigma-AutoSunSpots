@@ -116,9 +116,9 @@ if __name__ == "__main__":
     un_compat_lineC_BGRA = (10, 10, 255, 0.3)
     line_thickness = 1  # 画像は16bitで読み込みます
 
-    hist_show = True
+    hist_show = False
 
-    INPUT_PARENT_DIR = Path(r"E:/projects/Sigma_AutoSunSpots/samples/")
+    INPUT_PARENT_DIR = Path(r"E:/projects/AutoSunsSpots/Sigma_AutoSunSpots/samples")
     INPUT_DIR_NAMES = [
         "2025-07-20-PL1.zip",
         "2025-08-30-LT1.zip",
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         utils.check_exist_mkdir(with_disb_path)
         logger.debug(f"with_disb_path: '{with_disb_path}'")
 
-        sigma_path = SAVE_DIR / f"sigma{img_suffix}"
+        sigma_path = SAVE_DIR / f"sigma_x10val{img_suffix}"
         utils.check_exist_mkdir(sigma_path)
         logger.debug(f"sigma_path: '{sigma_path}'")
 
@@ -211,12 +211,14 @@ if __name__ == "__main__":
         logger.info("compute mean,std")
         #  平均値, 標準偏差 を取得 (偏差値は棄てる)
         mean, std, _ = utils.calculate_hensachi(frames)  # mean,std共にnp.float64だが、範囲はint16bit
+        logger.debug(f"std  dtype: {std.dtype},range({np.min(std)},{np.max(std)})")
 
         logger.debug(f"sigma image size: {std.size}")
 
         logger.info("--- highlight based on sigma image ---")
         logger.info("calculate contours")
 
+        sigma_image = std.copy()
         std_int = std.astype(np.uint16)
         std_hist = histogram(std_int)
 
@@ -338,6 +340,11 @@ if __name__ == "__main__":
             logger.info("save isoline_img image sucessful")
         else:
             logger.warning("isoline_img image imwrite failed")
+
+        if utils.save_scaled_std_tiff(sigma_path.resolve(), sigma_image, scale_factor=10):
+            logger.info("save sigma_img image sucessful")
+        else:
+            logger.warning("sigma_img image imwrite failed")
 
         if cv2.imwrite(thresh_path.resolve(), thresh_uint8):
             logger.info("save thresh_uint8 image sucessful")
