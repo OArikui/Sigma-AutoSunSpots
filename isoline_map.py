@@ -125,11 +125,10 @@ if __name__ == "__main__":
         "2026-01-12-LT1.zip",
         "2026-01-17-PL1.zip",
     ]
-    SAVE_DIR = f".\\save\\isoline_highlight"
+    SAVE_DIR = Path(__file__).resolve().parent / ".\\save\\isoline_highlight"
 
     image_ext = ".png"
 
-    SAVE_DIR = Path(SAVE_DIR)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     logger = logging.getLogger()

@@ -1,13 +1,14 @@
+import json
 import cv2
-import utils
 import matplotlib.colors as mcolors
 import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import numpy as np
+import tifffile as tiff
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 
-def create_custom_heatmap(
+def heatmap_customL(
     data: np.ndarray,
     val_range: tuple[float, float],
     cmap_name: str,
@@ -19,8 +20,11 @@ def create_custom_heatmap(
     """正方形のヒートマップの左縁と下縁に沿って、右下->左下->左上の順で
 
     値が高くなるL字型の特殊なカラーバーを配置した画像を生成します。
-    オーバーフロー/アンダーフローの境目(vmax/vmin)の文字と目盛り線を強調表示します。
+    data.dtype が整数型の場合は目盛りテキストを整数表記にします。
     """
+    # 0. 入力データの次元調整・dtype判定
+    # 画像のdtypeが整数型(int8, uint8, int32, uint16等)かどうかの判定
+    is_integer = np.issubdtype(data.dtype, np.integer)
 
     if data.ndim == 3:
         if data.shape[2] in (3, 4):
@@ -38,8 +42,7 @@ def create_custom_heatmap(
     has_underflow = full_min < vmin
     has_overflow = full_max > vmax
 
-    # アンダー/オーバーフロー結合
-    total_range = full_max - full_min
+    # 1. カラーマップの作成 (アンダー/オーバーフロー結合)
 
     if total_range > 0 and (has_underflow or has_overflow):
         colors_list = []
@@ -76,7 +79,8 @@ def create_custom_heatmap(
 
     R = max(0.01, min(colorbar_thick / 100.0, 0.4))
     ax_cbar = fig.add_axes([0.0, 0.0, 1.0, 1.0])
-    # L字型カラーバーのグラデーションを作成
+
+    # 2. L字型カラーバーのグラデーションを作成
     N = 1000
     T = int(N * R)
     X, Y = np.meshgrid(np.arange(N), np.arange(N))
@@ -96,15 +100,17 @@ def create_custom_heatmap(
         vmax=full_max,
     )
     ax_cbar.axis("off")
-    # 重なり防止機能付き目盛り管理・間引き処理
+
+    # 3. 重なり防止機能付き目盛り管理・間引き処理
     candidate_ticks = []
 
-    # 標準の等間隔目盛り (優先度: 1)
+    # 3-1. 標準の等間隔目盛り
     default_s_list = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0]
     for s in default_s_list:
         val = full_min + s * total_range
         candidate_ticks.append({"s": s, "val": val, "priority": 1, "tag": "default"})
-    # 特殊境界・実測値目盛り (優先度: 2 - より重要)
+
+    # 3-2. 特殊境界・実測値目盛り
     if total_range > 0:
         if has_underflow:
             s_vmin = (vmin - full_min) / total_range
@@ -124,7 +130,7 @@ def create_custom_heatmap(
 
     candidate_ticks.sort(key=lambda item: item["s"])
 
-    # 近接目盛りの自動間引き
+    # 3-3. 近接目盛りの自動間引き
     min_s_dist = 0.07
     filtered_ticks = []
 
@@ -148,9 +154,8 @@ def create_custom_heatmap(
         else:
             filtered_ticks.append(tick)
 
-    # カラーバー内数値・目盛り線の描画 (境界強調付き)
+    # 4. カラーバー内数値・目盛り線の描画
     def add_embedded_text(x, y, text_str, is_boundary=False):
-        # 境目のテキストは黄色・大サイズ・極太縁取りで強調
         text_color = "#FFD700" if is_boundary else "white"
         font_size = 10 if is_boundary else 8
         stroke_width = 3.0 if is_boundary else 2.5
@@ -168,14 +173,19 @@ def create_custom_heatmap(
         )
         txt.set_path_effects([path_effects.withStroke(linewidth=stroke_width, foreground="black")])
 
+    # 目盛り文字列のフォーマット関数（int判断）
     def get_label_text(tick_item):
         val = tick_item["val"]
         tag = tick_item["tag"]
+
+        # dtype が整数型の場合は小数点以下を削除（四捨五入して整数化）
+        val_str = f"{int(round(val))}" if is_integer else f"{val:.1f}"
+
         if tag == "min":
-            return f"min:{val:.1f}"
+            return f"min:{val_str}"
         if tag == "max":
-            return f"max:{val:.1f}"
-        return f"{val:.1f}"
+            return f"max:{val_str}"
+        return val_str
 
     pad_margin = 0.05
 
@@ -183,9 +193,8 @@ def create_custom_heatmap(
         s = tick["s"]
         tag = tick["tag"]
         label_str = get_label_text(tick)
-        is_boundary = tag in ("vmin", "vmax")  # オーバー/アンダー境界判定
+        is_boundary = tag in ("vmin", "vmax")
 
-        # 目盛り線のスタイル設定 (境界の場合は黄色かつ太線)
         line_color = "#FFD700" if is_boundary else "white"
         line_width = 2.0 if is_boundary else 1.0
 
@@ -238,7 +247,8 @@ def create_custom_heatmap(
     x_outline = [0.0, 1.0, 1.0, R, R, 0.0, 0.0]
     y_outline = [0.0, 0.0, R, R, 1.0, 1.0, 0.0]
     ax_cbar.plot(x_outline, y_outline, color="white", linewidth=2.0, zorder=20)
-    # メインのヒートマップ画像の設定
+
+    # 5. メインのヒートマップ画像の設定
     ax_main = fig.add_axes([R, R, 1.0 - R, 1.0 - R])
     ax_main.imshow(
         data,
@@ -250,7 +260,7 @@ def create_custom_heatmap(
     )
     ax_main.axis("off")
 
-    # 画像配列(np.ndarray)として取得して返す
+    # 6. 画像配列(np.ndarray)として取得して返す
     canvas.draw()
     img_arr = np.asarray(canvas.buffer_rgba())
     plt.close(fig)
@@ -271,7 +281,7 @@ if __name__ == "__main__":
     overd_cmap_name = "cool"
     colorbar_thick = 10
 
-    result_image = create_custom_heatmap(
+    result_image = heatmap_customL(
         data=dummy_data,
         val_range=val_range,
         cmap_name=cmap_name,

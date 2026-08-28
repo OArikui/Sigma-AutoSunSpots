@@ -40,6 +40,7 @@ def save_scaled_std_tiff(filename: str, std_array: np.ndarray, scale_factor: flo
 
     # 2. メタデータ作成
     metadata = {
+        "madeby": "Sigma_AutoSunSpotsV0 https://github.com/OArikui/Sigma-AutoSunSpots",
         "data_type": "standard_deviation",
         "scale_factor": scale_factor,
         "unit_per_lsb": 1.0 / scale_factor,
