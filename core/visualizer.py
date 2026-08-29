@@ -1,12 +1,23 @@
-import json
-import cv2
-import matplotlib.colors as mcolors
-import matplotlib.patheffects as path_effects
-import matplotlib.pyplot as plt
-import numpy as np
-import tifffile as tiff
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 
+def drawContours_alpha(
+    image: np.ndarray, contours: np.ndarray, lineC_BGRA: tuple[int, int, int, float], line_thickness: int = 1
+) -> NDArray[np.uint8]:
+    getted_param = {"line_color_BGR": lineC_BGRA, "line_thickness": line_thickness}
+    logger.debug(f"getted_param : {getted_param}")
+
+    norm_BGR = utils.scale_to_uint8(image, float_range=None)
+
+    overlay = norm_BGR.copy()
+
+    lineC_BGR = lineC_BGRA[:3]
+    alpha = lineC_BGRA[-1]
+    if alpha > 1.0 or alpha < 0.0:
+        logger.waring("reset alpha to 0.5, alpha should fall between 0 and 1.")
+    cv2.drawContours(overlay, contours, -1, lineC_BGR, thickness=line_thickness)
+
+    output = cv2.addWeighted(overlay, alpha, norm_BGR, 1 - alpha, 0)
+
+    return output
 
 def heatmap_customL(
     data: np.ndarray,
