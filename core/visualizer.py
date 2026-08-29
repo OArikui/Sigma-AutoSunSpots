@@ -38,10 +38,7 @@ def heatmap_customL(
     is_integer = np.issubdtype(data.dtype, np.integer)
 
     if data.ndim == 3:
-        if data.shape[2] in (3, 4):
-            data = np.mean(data[:, :, :3], axis=2)
-        else:
-            data = data[:, :, 0]
+        data = np.mean(data[:, :, :3], axis=2) if data.shape[2] in (3, 4) else data[:, :, 0]
 
     vmin, vmax = val_range
     data_min = float(np.nanmin(data))
@@ -154,9 +151,7 @@ def heatmap_customL(
         dist = tick["s"] - prev["s"]
 
         if dist < min_s_dist:
-            if tick["priority"] > prev["priority"]:
-                filtered_ticks[-1] = tick
-            elif (
+            if tick["priority"] > prev["priority"] or (
                 tick["priority"] == prev["priority"]
                 and tick["tag"] in ("min", "max", "vmin", "vmax")
                 and prev["tag"] not in ("min", "max", "vmin", "vmax")
@@ -166,7 +161,7 @@ def heatmap_customL(
             filtered_ticks.append(tick)
 
     # 4. カラーバー内数値・目盛り線の描画
-    def add_embedded_text(x, y, text_str, is_boundary=False):
+    def add_embedded_text(x, y, text_str, is_boundary=False) -> None:
         text_color = "#FFD700" if is_boundary else "white"
         font_size = 10 if is_boundary else 8
         stroke_width = 3.0 if is_boundary else 2.5

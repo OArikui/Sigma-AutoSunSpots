@@ -22,7 +22,7 @@ def save_scaled_std_tiff(filename: str, std_array: np.ndarray, scale_factor: flo
         logger.debug(f"[保存完了] {filename} (shape: {clipped_data.shape}, dtype: {clipped_data.dtype})")
         return True
     except:
-        logger.exception(f"保存失敗")
+        logger.exception("保存失敗")
         return False
 
 
