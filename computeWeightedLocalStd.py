@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def compute_weighted_local_std(
@@ -8,6 +9,7 @@ def compute_weighted_local_std(
     weight_model: str = "gaussian",
     use_circle: bool = True,
     sigma: float | None = None,
+    debug_show: bool = False,
 ) -> np.ndarray:
     """
     2Dグレースケール画像の各ピクセルに対し、選択した形状と距離減衰モデルで
@@ -19,6 +21,7 @@ def compute_weighted_local_std(
         weight_model (str): 減衰モデル ('gaussian', 'inverse', 'linear')
         use_circle (bool): Trueで円形近傍、Falseで正方形近傍
         sigma (float, optional): 'gaussian'時の標準偏差。デフォルトは r/2
+        debug_show (bool, optional): Trueのとき、計算結果をMatplotlibでブロック表示します。
 
     Returns:
         np.ndarray: 各要素の重み付き局所標準偏差 (float32)
@@ -78,5 +81,14 @@ def compute_weighted_local_std(
     # 浮動小数点誤差の補正
     variance_w = np.maximum(variance_w, 0.0)
     std_dev_w = np.sqrt(variance_w)
+
+    # デバッグ表示機能
+    if debug_show:
+        plt.figure(figsize=(8, 6))
+        plt.title(f"Local Standard Deviation (r={r}, model={weight_model})")
+        # 輝度のばらつき度合いが見やすいようにカラーマップ(viridis等)を適用
+        plt.imshow(std_dev_w, cmap="viridis")
+        plt.colorbar(label="Standard Deviation")
+        plt.show(block=True)
 
     return std_dev_w
