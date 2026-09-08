@@ -1,4 +1,11 @@
+import cv2
+import numpy as np
+import tqdm
+from numpy.typing import NDArray
 
+from core.optImg import crop_and_pad
+from core.mods.zip_operator import get_image_names_from_dir,get_image_names_from_zip,load_image_from_path_cv2,load_image_from_zip_cv2
+from core.mods.MIN2ver2 import MIN2_ignore_sunspots,version
 
 def histogram(image: np.ndarray) -> np.ndarray:
     dt = image.dtype.itemsize * 8
@@ -136,13 +143,11 @@ def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[n
 
 def calculate_hensachi(
     frames: NDArray[NDArray[np.uint16]],
-) -> Annotated[
-    tuple[
+) -> tuple[
         NDArray[np.float64],
         NDArray[np.float64],
-        NDArray[NDArray[np.float64]],
-    ],
-    "RANGE = 16bit, 16bit, 0-100",
+        NDArray[NDArray[np.float64]]
+
 ]:
     """平均画像・標準偏差画像・偏差値画像を計算する。"""
 

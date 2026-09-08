@@ -1,3 +1,4 @@
+from pathlib import Path
 def check_exist_mkdir(path: Path) -> None:
     if "." in str(path):
         path = path.parent

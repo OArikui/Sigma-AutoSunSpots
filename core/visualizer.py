@@ -1,3 +1,13 @@
+from core import optImg
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy.typing import NDArray
+from logging import Logger
+import matplotlib.colors as mcolors
+import matplotlib.patheffects as path_effects
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+
 
 def drawContours_alpha(
     image: np.ndarray, contours: np.ndarray, lineC_BGRA: tuple[int, int, int, float], line_thickness: int = 1
@@ -5,7 +15,7 @@ def drawContours_alpha(
     getted_param = {"line_color_BGR": lineC_BGRA, "line_thickness": line_thickness}
     logger.debug(f"getted_param : {getted_param}")
 
-    norm_BGR = utils.scale_to_uint8(image, float_range=None)
+    norm_BGR = optImg.scale_to_uint8(image, float_range=None)
 
     overlay = norm_BGR.copy()
 
@@ -278,7 +288,7 @@ if __name__ == "__main__":
     """np.random.seed(42)
     dummy_data = 20.0 + np.random.rand(50, 50) * 60.0 + 100
 """
-    dummy_data, _ = utils.load_scaled_std_tiff(
+    dummy_data, _ = optImg.load_scaled_std_tiff(
         r"E:\projects\AutoSunsSpots\Sigma_AutoSunSpots\save\isoline_highlight\sigma_x10val__samples-2025-07-20-PL1.zip.png",
         False,
     )
