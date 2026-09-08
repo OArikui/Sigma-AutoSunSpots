@@ -155,5 +155,5 @@ def calculate_hensachi(
     # 偏差値画像
     deviation: NDArray[np.float64] = np.where(std == 0, 50, 50 + 10 * (frames - mean) / std)
 
-    return mean, std, deviation(cx), int(cy), h_size, w_size)
+    return mean, std, deviation
 
