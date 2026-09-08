@@ -3,8 +3,13 @@ import cv2
 
 import numpy as np
 from numpy.typing import NDArray
+from logging import getLogger
 
 import tifffile as tiff
+
+logger = getLogger(__name__)
+
+
 def save_scaled_std_tiff(filename: str, std_array: np.ndarray, scale_factor: float = 10.0) -> bool:
     """
     標準偏差配列(float)をスケール変換して uint16 TIFF として保存する関数

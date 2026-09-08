@@ -1,12 +1,14 @@
 import cv2
 import numpy as np
 import tqdm
+from logging import getLogger
 from numpy.typing import NDArray
 
 from core.optImg import crop_and_pad
 from core.mods.zip_operator import get_image_names_from_dir,get_image_names_from_zip,load_image_from_path_cv2,load_image_from_zip_cv2
 from core.mods.MIN2ver2 import MIN2_ignore_sunspots,version
 
+logger = getLogger(__name__)
 def histogram(image: np.ndarray) -> np.ndarray:
     dt = image.dtype.itemsize * 8
     print("dt:", dt)
@@ -117,10 +119,10 @@ def extract_sun_min2(dir_path: str, h_size: int, w_size: int) -> tuple[NDArray[n
             load_image_from_zip_cv2(dir_path, name) if zip_operate else load_image_from_path_cv2(dir_path, name)
         )
         if img is None:
-            logger.Warning(f"No img: {name}")
+            logger.warning(f"No img: {name}")
             continue
         try:
-            cx, cy, r = MIN2_ignore_sunspots(img, show=False, debug=False, **min2_params)
+            cx, cy, r = MIN2_ignore_sunspots(readed_img=img,**min2_params, show=False, debug=False)
         except Exception:  # noqa: S112,BLE001
             continue
 

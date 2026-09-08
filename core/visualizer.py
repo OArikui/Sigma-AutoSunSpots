@@ -3,11 +3,12 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
-from logging import Logger
+from logging import Logger, getLogger
 import matplotlib.colors as mcolors
 import matplotlib.patheffects as path_effects
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
+logger = getLogger(__name__)
 
 def drawContours_alpha(
     image: np.ndarray, contours: np.ndarray, lineC_BGRA: tuple[int, int, int, float], line_thickness: int = 1
@@ -22,7 +23,7 @@ def drawContours_alpha(
     lineC_BGR = lineC_BGRA[:3]
     alpha = lineC_BGRA[-1]
     if alpha > 1.0 or alpha < 0.0:
-        logger.waring("reset alpha to 0.5, alpha should fall between 0 and 1.")
+        logger.warn("reset alpha to 0.5, alpha should fall between 0 and 1.")
     cv2.drawContours(overlay, contours, -1, lineC_BGR, thickness=line_thickness)
 
     output = cv2.addWeighted(overlay, alpha, norm_BGR, 1 - alpha, 0)
@@ -59,7 +60,7 @@ def heatmap_customL(
 
     has_underflow = full_min < vmin
     has_overflow = full_max > vmax
-
+    total_range = full_max - full_min
     # 1. カラーマップの作成 (アンダー/オーバーフロー結合)
 
     if total_range > 0 and (has_underflow or has_overflow):
