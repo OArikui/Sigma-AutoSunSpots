@@ -1,12 +1,34 @@
-import json
+from core import optImg
 import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy.typing import NDArray
+from logging import Logger, getLogger
 import matplotlib.colors as mcolors
 import matplotlib.patheffects as path_effects
-import matplotlib.pyplot as plt
-import numpy as np
-import tifffile as tiff
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
+logger = getLogger(__name__)
+
+def drawContours_alpha(
+    image: np.ndarray, contours: np.ndarray, lineC_BGRA: tuple[int, int, int, float], line_thickness: int = 1
+) -> NDArray[np.uint8]:
+    getted_param = {"line_color_BGR": lineC_BGRA, "line_thickness": line_thickness}
+    logger.debug(f"getted_param : {getted_param}")
+
+    norm_BGR = optImg.scale_to_uint8(image, float_range=None)
+
+    overlay = norm_BGR.copy()
+
+    lineC_BGR = lineC_BGRA[:3]
+    alpha = lineC_BGRA[-1]
+    if alpha > 1.0 or alpha < 0.0:
+        logger.warn("reset alpha to 0.5, alpha should fall between 0 and 1.")
+    cv2.drawContours(overlay, contours, -1, lineC_BGR, thickness=line_thickness)
+
+    output = cv2.addWeighted(overlay, alpha, norm_BGR, 1 - alpha, 0)
+
+    return output
 
 def heatmap_customL(
     data: np.ndarray,
@@ -27,10 +49,7 @@ def heatmap_customL(
     is_integer = np.issubdtype(data.dtype, np.integer)
 
     if data.ndim == 3:
-        if data.shape[2] in (3, 4):
-            data = np.mean(data[:, :, :3], axis=2)
-        else:
-            data = data[:, :, 0]
+        data = np.mean(data[:, :, :3], axis=2) if data.shape[2] in (3, 4) else data[:, :, 0]
 
     vmin, vmax = val_range
     data_min = float(np.nanmin(data))
@@ -41,7 +60,7 @@ def heatmap_customL(
 
     has_underflow = full_min < vmin
     has_overflow = full_max > vmax
-
+    total_range = full_max - full_min
     # 1. カラーマップの作成 (アンダー/オーバーフロー結合)
 
     if total_range > 0 and (has_underflow or has_overflow):
@@ -143,9 +162,7 @@ def heatmap_customL(
         dist = tick["s"] - prev["s"]
 
         if dist < min_s_dist:
-            if tick["priority"] > prev["priority"]:
-                filtered_ticks[-1] = tick
-            elif (
+            if tick["priority"] > prev["priority"] or (
                 tick["priority"] == prev["priority"]
                 and tick["tag"] in ("min", "max", "vmin", "vmax")
                 and prev["tag"] not in ("min", "max", "vmin", "vmax")
@@ -155,7 +172,7 @@ def heatmap_customL(
             filtered_ticks.append(tick)
 
     # 4. カラーバー内数値・目盛り線の描画
-    def add_embedded_text(x, y, text_str, is_boundary=False):
+    def add_embedded_text(x, y, text_str, is_boundary=False) -> None:
         text_color = "#FFD700" if is_boundary else "white"
         font_size = 10 if is_boundary else 8
         stroke_width = 3.0 if is_boundary else 2.5
@@ -272,7 +289,7 @@ if __name__ == "__main__":
     """np.random.seed(42)
     dummy_data = 20.0 + np.random.rand(50, 50) * 60.0 + 100
 """
-    dummy_data, _ = utils.load_scaled_std_tiff(
+    dummy_data, _ = optImg.load_scaled_std_tiff(
         r"E:\projects\AutoSunsSpots\Sigma_AutoSunSpots\save\isoline_highlight\sigma_x10val__samples-2025-07-20-PL1.zip.png",
         False,
     )
